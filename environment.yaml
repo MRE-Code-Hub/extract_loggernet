@@ -1,0 +1,6 @@
+name: extract_loggernet
+dependencies:
+  - python=3
+  - pip
+  - pip:
+    - pyyaml

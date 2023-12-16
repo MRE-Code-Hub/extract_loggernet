@@ -1,0 +1,19 @@
+CDL_TYPE: CR3000
+
+OUTPUT_DIR: out
+
+MAX_WAIT_TIME: 120 # seconds
+BUFFERING: ON
+SPLIT_INTERVAL: HOURLY
+FILE_NAME_FORMAT: PREFIX.YYYYMMDDhhmmss.EXT
+
+# RENAME_PREFIX: summary # problem with 'mm' being replaced with minutes value
+# RENAME_EXTENSION: csv
+
+
+INPUT_FILE: /Users/rasm841/extract_loggernet/test_files/4-CR3000_Table213.dat
+
+
+# BUFFERING: OFF
+# MAX_WAIT_TIME: 0
+
