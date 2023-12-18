@@ -1,7 +1,10 @@
+#!/usr/bin/env python3
+import argparse
 from datetime import datetime, timedelta
 import re
 import os
 import yaml
+import time
 
 
 def read_config(path):
@@ -22,6 +25,7 @@ def extract_time(line):
             year, month, day, hour, minute, second = date_string.groups()
             return datetime(int(year), int(month), int(day), int(hour), int(minute), int(second))
         return
+
     elif CDL_TYPE == "CRXX" or CDL_TYPE == "CR23" or CDL_TYPE == "CR10":
         parsed_date = re.match("^\d+,(\d+),(\d+),(\d+),", line)
         if parsed_date:
@@ -43,16 +47,6 @@ def extract_time(line):
 
             date = datetime(year, 1, 1)
             delta = timedelta(days=yday, hours=hh, minutes=mm)
-            print()
-            print(year, yday, hhmm)
-            print(year, yday, hh, mm)
-            print()
-            print(date.isoformat())
-            print()
-            print(delta)
-            print()
-            print((date+delta).isoformat())
-            input()
             return date + delta
 
         return
@@ -85,13 +79,15 @@ def write_new_hourly_file(head, data, timestamp):
 
 
 def set_file_handle(current_pos):
-    with open(f"file_handle.dat", "w") as f:
+    filehandle = os.path.join(INPUT_PATH, "file_handle.dat")
+    with open(filehandle, "w") as f:
         f.write(str(current_pos))
 
 
 def parse_file_handle():
-    if os.path.isfile("file_handle.dat"):
-        with open("file_handle.dat", "r") as f:
+    filehandle = os.path.join(INPUT_PATH, "file_handle.dat")
+    if os.path.isfile(filehandle):
+        with open(filehandle, "r") as f:
             store = f.read()
             if len(store) > 0:
                 return int(store)
@@ -107,11 +103,23 @@ def process_file(file):
 
     file.seek(current_file_position)
 
+    debounce_time = 0 # seconds
     while True:
         line = file.readline()
-        if (len(line) == 0):
-            print("end of file")
-            break
+        if not line:
+            # Keep trying to read new lines
+            # until either {MAX_DEBOUNCE_TIME} seconds
+            # have elapsed or a new line is read.
+            # (Essentially a debounce)
+            if debounce_time < MAX_DEBOUNCE_TIME:
+                time.sleep(1)
+                debounce_time += 1
+                print(f"debounce {debounce_time}")
+                continue
+            else:
+                print("end of file")
+                break
+        debounce_time = 0
 
         t = extract_time(line)
         print(line)
@@ -139,30 +147,58 @@ def process_file(file):
         # update the file position
         current_file_position = file.tell()
 
+    # If the input file is written in daily intervals, then
+    # the input file will not be broken on the hour,
+    # so we can assume that the remaining data is a full hour.
+    if t_stamp and temp_data_lines and not BUFFERING:
+        print("not buffering")
+        write_new_hourly_file(header_info, temp_data_lines, t_stamp)
+        set_file_handle(current_file_position)
+
     file.close()
 
 
-conf = read_config("./extract_loggernet.conf.yaml")
-
-CDL_TYPE = conf["CDL_TYPE"]
-OUTPUT_DIR = conf["OUTPUT_DIR"]
-MAX_WAIT_TIME = conf["MAX_WAIT_TIME"]
-BUFFERING = conf["BUFFERING"]
-SPLIT_INTERVAL = conf["SPLIT_INTERVAL"]
-FILE_NAME_FORMAT = conf["FILE_NAME_FORMAT"]
-INPUT_FILE = conf["INPUT_FILE"]
-
-# get file prefix and extension
-PREFIX, EXTENSION = re.split("\.|\/", INPUT_FILE)[-2:]
-
-# If RENAME_PREFIX or RENAME_EXTENSION are included in the
-# conf file, then rename the prefix and extension
-PREFIX = conf["RENAME_PREFIX"] if "RENAME_PREFIX" in conf.keys() else PREFIX
-EXTENSION = conf["RENAME_EXTENSION"] if "RENAME_EXTENSION" in conf.keys() else EXTENSION
-
-
-file = open(INPUT_FILE, "r")
-
-
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(
+        prog="extract_loggernet",
+        description="""The extract_loggernet script is used to read the infinitely growing
+        data files created by Loggernet and extract each hour of data into a separate timestamped file.
+        This script requires an `extrat_loggernet.conf.yaml` configuration
+        file to be located in the specified input directory."""
+    )
+
+    parser.add_argument('input_path', help="Directory containing the input loggernet file and an extract_loggernet_conf.yaml file")
+    args = parser.parse_args()
+    INPUT_PATH = args.input_path
+
+    ## Read the config file
+    if not os.path.exists(INPUT_PATH):
+        raise FileNotFoundError(f"No such file or directory: '{INPUT_PATH}'")
+
+    conf_path = os.path.join(INPUT_PATH, "./extract_loggernet_conf.yaml")
+    if not os.path.exists(conf_path):
+        raise FileNotFoundError(f"Could not find `extract_loggernet_conf.yaml` in the given directory")
+
+    conf = read_config(os.path.join(INPUT_PATH, "./extract_loggernet_conf.yaml"))
+
+    # Set global variables from the config file
+    CDL_TYPE = conf["CDL_TYPE"]
+    OUTPUT_DIR = conf["OUTPUT_DIR"]
+    MAX_DEBOUNCE_TIME = int(conf["MAX_DEBOUNCE_TIME"])
+    BUFFERING = conf["BUFFERING"]
+    SPLIT_INTERVAL = conf["SPLIT_INTERVAL"]
+    FILE_NAME_FORMAT = conf["FILE_NAME_FORMAT"]
+    INPUT_FILE = conf["INPUT_FILE"]
+
+    # get file prefix and extension
+    PREFIX, EXTENSION = re.split("\.|\/", INPUT_FILE)[-2:]
+
+    # If RENAME_PREFIX or RENAME_EXTENSION are included in the
+    # conf file, then rename the prefix and extension
+    PREFIX = conf["RENAME_PREFIX"] if "RENAME_PREFIX" in conf.keys() else PREFIX
+    EXTENSION = conf["RENAME_EXTENSION"] if "RENAME_EXTENSION" in conf.keys() else EXTENSION
+
+    path = os.path.join(INPUT_PATH, INPUT_FILE)
+    file = open(path, "r")
+
     process_file(file)
