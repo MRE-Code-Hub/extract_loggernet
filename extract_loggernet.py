@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 import re
 import os
 import yaml
@@ -14,11 +14,48 @@ def read_config(path):
 
 def extract_time(line):
     global previous_hour
-    date_string = re.match("^\"(\d+)-(\d+)-(\d+)\s+(\d+):(\d+):(\d+)", line)
-    if (date_string):
-        year, month, day, hour, minute, second = date_string.groups()
-        return datetime(int(year), int(month), int(day), int(hour), int(minute), int(second))
-    return
+
+    # Extract time from CR3000 or CR1000 loggernet files
+    if CDL_TYPE == "CRXXXX" or CDL_TYPE == "CR3000" or CDL_TYPE == "CR1000":
+        date_string = re.match("^\"(\d+)-(\d+)-(\d+)\s+(\d+):(\d+):(\d+)", line)
+        if (date_string):
+            year, month, day, hour, minute, second = date_string.groups()
+            return datetime(int(year), int(month), int(day), int(hour), int(minute), int(second))
+        return
+    elif CDL_TYPE == "CRXX" or CDL_TYPE == "CR23" or CDL_TYPE == "CR10":
+        parsed_date = re.match("^\d+,(\d+),(\d+),(\d+),", line)
+        if parsed_date:
+            # Date format for CRXX:
+            # <random number>, yyyy, dd, hhmm
+            # The hhmm may just be hmm if the hour
+            # is a single digit. dd is the day of the year.
+            # EX: line[0,4] returns [213, 2010, 49, 204]
+            # year: 2010, 49th day of the year, hour: 2, min: 04
+            year, yday, hhmm = list(map(int, parsed_date.groups()))
+
+            # The nth day of the year includes
+            # Jan 1, so subtract 1 day.
+            # EX: the 48th day of a normal year is Feb 17
+            # so date(yyyy, 1, 1) + delta(day=48-1) is Feb 17
+            yday -= 1
+            hh = int(hhmm / 100)
+            mm = int(hhmm % 100)
+
+            date = datetime(year, 1, 1)
+            delta = timedelta(days=yday, hours=hh, minutes=mm)
+            print()
+            print(year, yday, hhmm)
+            print(year, yday, hh, mm)
+            print()
+            print(date.isoformat())
+            print()
+            print(delta)
+            print()
+            print((date+delta).isoformat())
+            input()
+            return date + delta
+
+        return
 
 
 def extract_header_info(file):

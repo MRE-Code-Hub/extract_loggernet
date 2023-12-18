@@ -1,4 +1,4 @@
-CDL_TYPE: CR3000
+CDL_TYPE: CR23
 
 OUTPUT_DIR: out
 
@@ -11,7 +11,7 @@ FILE_NAME_FORMAT: PREFIX.YYYYMMDDhhmmss.EXT
 # RENAME_EXTENSION: csv
 
 
-INPUT_FILE: /Users/rasm841/extract_loggernet/test_files/4-CR3000_Table213.dat
+INPUT_FILE: /Users/rasm841/extract_loggernet/test_files/CR23/3-GndRadData.dat
 
 
 # BUFFERING: OFF
