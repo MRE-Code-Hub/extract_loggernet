@@ -7,16 +7,15 @@ import yaml
 import time
 
 
-def read_config(path):
-    with open(path, "r") as conf:
+def read_yaml(path):
+    with open(path, "r") as f:
         try:
-            return yaml.safe_load(conf)
+            return yaml.safe_load(f)
         except yaml.YAMLError as e:
             raise e
 
 
 def extract_time(line):
-    global previous_timestamp
 
     # Extract time from CR3000 or CR1000 loggernet files
     if CDL_TYPE == "CRXXXX" or CDL_TYPE == "CR3000" or CDL_TYPE == "CR1000":
@@ -87,18 +86,21 @@ def write_new_hourly_file(head, data, timestamp):
 
 
 def set_file_handle(current_pos):
-    filehandle = os.path.join(INPUT_PATH, "file_handle.dat")
+    filehandle = os.path.join(INPUT_PATH, ".extract_loggernet_file_position.yaml")
     with open(filehandle, "w") as f:
-        f.write(str(current_pos))
+        data = {
+            "INPUT_FILE": INPUT_FILE,
+            "FILE_POSITION": current_pos
+        }
+        yaml.dump(data, f)
 
 
 def parse_file_handle():
-    filehandle = os.path.join(INPUT_PATH, "file_handle.dat")
+    filehandle = os.path.join(INPUT_PATH, ".extract_loggernet_file_position.yaml")
     if os.path.isfile(filehandle):
-        with open(filehandle, "r") as f:
-            store = f.read()
-            if len(store) > 0:
-                return int(store)
+        data = read_yaml(filehandle)
+        if data["INPUT_FILE"] == INPUT_FILE:
+            return int(data["FILE_POSITION"])
     return 0
 
 
