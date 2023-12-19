@@ -16,7 +16,7 @@ def read_config(path):
 
 
 def extract_time(line):
-    global previous_hour
+    global previous_timestamp
 
     # Extract time from CR3000 or CR1000 loggernet files
     if CDL_TYPE == "CRXXXX" or CDL_TYPE == "CR3000" or CDL_TYPE == "CR1000":
@@ -63,19 +63,27 @@ def extract_header_info(file):
 
 
 def write_new_hourly_file(head, data, timestamp):
-    name = FILE_NAME_FORMAT
-    name = re.sub("PREFIX", PREFIX, name)
-    name = re.sub("EXT", EXTENSION, name)
+    filename = FILE_NAME_FORMAT
+    filename = re.sub("PREFIX", PREFIX, filename)
+    filename = re.sub("EXT", EXTENSION, filename)
     year, month, day, hour, minute, second = re.split('-|T|:', timestamp.isoformat())
-    name = re.sub("YYYY", year, name)
-    name = re.sub("MM", month, name)
-    name = re.sub("DD", day, name)
-    name = re.sub("hh", hour, name)
-    name = re.sub("mm", minute, name)
-    name = re.sub("ss", second, name)
+    filename = re.sub("YYYY", year, filename)
+    filename = re.sub("MM", month, filename)
+    filename = re.sub("DD", day, filename)
+    filename = re.sub("hh", hour, filename)
+    filename = re.sub("mm", minute, filename)
+    filename = re.sub("ss", second, filename)
 
-    with open(f'{OUTPUT_DIR}/{name}', "w") as temp:
-        temp.write(head + data)
+    # Check if there is a file with this filename already.
+    # If there is, then append this data to that file.
+    filepath = os.path.join(OUTPUT_DIR, filename)
+    if os.path.exists(filepath):
+        with open(filepath, "a") as temp:
+            temp.write(data)
+    else:
+        # create new file with header
+        with open(filepath, "w") as temp:
+            temp.write(head + data)
 
 
 def set_file_handle(current_pos):
@@ -97,63 +105,49 @@ def parse_file_handle():
 def process_file(file):
     header_info = extract_header_info(file)
     temp_data_lines = ""
-    previous_hour = None
-    t_stamp = None
+    previous_timestamp = None
     current_file_position = parse_file_handle()
 
     file.seek(current_file_position)
 
-    debounce_time = 0 # seconds
     while True:
         line = file.readline()
         if not line:
-            # Keep trying to read new lines
-            # until either {MAX_DEBOUNCE_TIME} seconds
-            # have elapsed or a new line is read.
-            # (Essentially a debounce)
-            if debounce_time < MAX_DEBOUNCE_TIME:
-                time.sleep(1)
-                debounce_time += 1
-                print(f"debounce {debounce_time}")
-                continue
-            else:
-                print("end of file")
-                break
-        debounce_time = 0
+            # If we haven't crossed an hour boundary
+            # before reaching the end of the file,
+            # then save any leftover data anyway
+            # and append to the file with the rest
+            # of the data later.
+            if previous_timestamp:
+                write_new_hourly_file(header_info, temp_data_lines, previous_timestamp)
+                set_file_handle(current_file_position)
+            print("end of file")
+            break
 
         t = extract_time(line)
         print(line)
         if t:
-            # initialize the t_stamp
-            if not t_stamp:
-                t_stamp = t
-
-            # check for changes in hour and
-            # split data on the hour
-            current_hour = t.replace(minute=0, second=0, microsecond=0)
-            if previous_hour and current_hour > previous_hour:
+            # Check for changes in hour and
+            # split data on the hour.
+            # (Detect changes in day and
+            # split on the day if specified).
+            current_timestamp = t.replace(minute=0, second=0, microsecond=0)
+            if SPLIT_INTERVAL == "DAILY":
+                current_timestamp = current_timestamp.replace(hour=0)
+            if previous_timestamp and current_timestamp > previous_timestamp:
                 print()
                 print('hour break')
-                print(previous_hour)
+                print(previous_timestamp)
                 print(t.replace(minute=0, second=0, microsecond=0))
                 print()
-                write_new_hourly_file(header_info, temp_data_lines, t_stamp)
+                write_new_hourly_file(header_info, temp_data_lines, previous_timestamp)
                 set_file_handle(current_file_position)
                 temp_data_lines = ""
-                t_stamp = t
 
-            previous_hour = t.replace(minute=0, second=0, microsecond=0)
+            previous_timestamp = current_timestamp
             temp_data_lines += line
         # update the file position
         current_file_position = file.tell()
-
-    # If the input file is written in daily intervals, then
-    # the input file will not be broken on the hour,
-    # so we can assume that the remaining data is a full hour.
-    if t_stamp and temp_data_lines and not BUFFERING:
-        print("not buffering")
-        write_new_hourly_file(header_info, temp_data_lines, t_stamp)
-        set_file_handle(current_file_position)
 
     file.close()
 
@@ -179,13 +173,11 @@ if __name__ == "__main__":
     if not os.path.exists(conf_path):
         raise FileNotFoundError(f"Could not find `extract_loggernet_conf.yaml` in the given directory")
 
-    conf = read_config(os.path.join(INPUT_PATH, "./extract_loggernet_conf.yaml"))
+    conf = read_yaml(os.path.join(INPUT_PATH, "./extract_loggernet_conf.yaml"))
 
     # Set global variables from the config file
     CDL_TYPE = conf["CDL_TYPE"]
     OUTPUT_DIR = conf["OUTPUT_DIR"]
-    MAX_DEBOUNCE_TIME = int(conf["MAX_DEBOUNCE_TIME"])
-    BUFFERING = conf["BUFFERING"]
     SPLIT_INTERVAL = conf["SPLIT_INTERVAL"]
     FILE_NAME_FORMAT = conf["FILE_NAME_FORMAT"]
     INPUT_FILE = conf["INPUT_FILE"]
