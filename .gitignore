@@ -2,3 +2,5 @@ test_files
 test_files
 out
 .dat
+__pycache__
+.pytest_cache
