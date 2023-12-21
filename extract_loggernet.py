@@ -108,6 +108,9 @@ def process_file(input_path, input_file, cdl_type, output_dir, split_interval, f
     if not os.path.exists(input_path):
         raise FileNotFoundError(f"Input path does not exist: '{input_path}'")
 
+    if not os.path.exists(output_dir):
+        raise FileNotFoundError(f"Output directory does not exist: '{output_dir}'")
+
     # get file prefix and extension
     prefix, extension = re.split(r"\.|\/", input_file)[-2:]
 
@@ -118,6 +121,8 @@ def process_file(input_path, input_file, cdl_type, output_dir, split_interval, f
     # If the input path exists, but the file doesn't...
     if not os.path.exists(path):
         raise FileNotFoundError(f"Input file does not exist: '{input_file}'")
+
+    print(f"running extract loggernet on {input_path}")
 
     file = open(path, "r")
 
@@ -139,12 +144,12 @@ def process_file(input_path, input_file, cdl_type, output_dir, split_interval, f
             if previous_timestamp:
                 write_new_hourly_file(output_dir, file_name_format, prefix, extension, header_info, temp_data_lines, previous_timestamp)
                 set_file_handle(input_path, input_file, current_file_position)
-            print("end of file")
+            # print("end of file")
             break
 
         t = extract_time(line, cdl_type)
         if t:
-            print(line)
+            # print(line)
             # Check for changes in hour and
             # split data on the hour.
             # (Detect changes in day and
@@ -153,11 +158,11 @@ def process_file(input_path, input_file, cdl_type, output_dir, split_interval, f
             if split_interval == "DAILY":
                 current_timestamp = current_timestamp.replace(hour=0)
             if previous_timestamp and current_timestamp > previous_timestamp:
-                print()
-                print('hour break')
-                print(previous_timestamp)
-                print(t.replace(minute=0, second=0, microsecond=0))
-                print()
+                # print()
+                # print('hour break')
+                # print(previous_timestamp)
+                # print(t.replace(minute=0, second=0, microsecond=0))
+                # print()
                 write_new_hourly_file(output_dir, file_name_format, prefix, extension, header_info, temp_data_lines, previous_timestamp)
                 set_file_handle(input_path, input_file, current_file_position)
                 temp_data_lines = ""
@@ -187,9 +192,9 @@ if __name__ == "__main__":
     if not os.path.exists(INPUT_PATH):
         raise FileNotFoundError(f"Input path does not exist: '{INPUT_PATH}'")
 
-    # print(os.getcwd())
+    # # print(os.getcwd())
     # input()
-    # print('changed')
+    # # print('changed')
 
     # # Change the current directory to the
     # # input path.
@@ -197,7 +202,7 @@ if __name__ == "__main__":
     # os.chdir(INPUT_PATH)
 
 
-    # print(os.getcwd())
+    # # print(os.getcwd())
     # input()
 
     conf_path = os.path.join(INPUT_PATH, "./extract_loggernet_conf.yaml")

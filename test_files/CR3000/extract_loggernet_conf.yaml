@@ -1,0 +1,13 @@
+CDL_TYPE: CR3000
+
+OUTPUT_DIR: ./test_files/CR3000/out
+
+SPLIT_INTERVAL: HOURLY # Specify DAILY to extract daily files rather than hourly
+FILE_NAME_FORMAT: PREFIX.YYYYMMDDhhmmss.EXT
+
+# RENAME_PREFIX: summary # problem with 'mm' being replaced with minutes value
+# RENAME_EXTENSION: csv
+
+
+INPUT_FILE: 4-CR3000_Table213.dat
+
