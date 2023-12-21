@@ -14,9 +14,14 @@ def test_correct_dir():
 
 
 
-@pytest.mark.parametrize(
-    "input_path, input_file, cdl_type",
-    [
+class TestGroup:
+
+    @pytest.fixture(scope="class", params=[
+        '''
+        Rather than use `pytest.mark.parametrize on the TestGroup class, use a class scoped fixture.
+        This way we can remove redundancy by running the extract loggernet script once for each file,
+        rather than once per test.
+        '''
         ('/Users/rasm841/extract_loggernet/test_files/CR3000', '1-CR3000_Table213.dat', 'CR3000'),
         ('/Users/rasm841/extract_loggernet/test_files/CR3000', '2-CR3000_Table213.dat', 'CR3000'),
         ('/Users/rasm841/extract_loggernet/test_files/CR3000', '3-CR3000_Table213.dat', 'CR3000'),
@@ -28,20 +33,32 @@ def test_correct_dir():
         ('/Users/rasm841/extract_loggernet/test_files/CR23', '4-GndRadData.dat', 'CR23'),
         ('/Users/rasm841/extract_loggernet/test_files/CR23', '5-GndRadData.dat', 'CR23'),
         ('/Users/rasm841/extract_loggernet/test_files/CR23', '6-GndRadData.dat', 'CR23'),
-    ],
-)
-class TestGroup:
+    ])
+    def parameters(self, request):
+        return request.param
 
-    @pytest.fixture
+    @pytest.fixture(scope="class")
+    def input_path(self, parameters):
+        return parameters[0]
+
+    @pytest.fixture(scope="class")
+    def input_file(self, parameters):
+        return parameters[1]
+
+    @pytest.fixture(scope="class")
+    def cdl_type(self, parameters):
+        return parameters[2]
+
+    @pytest.fixture(scope="class")
     def output_dir(self, input_path):
         return os.path.join(input_path, 'out')
 
-    @pytest.fixture
+    @pytest.fixture(scope="class")
     def expected_dir(self, input_path, input_file):
         return os.path.join(input_path, 'expected', input_file)
 
-    @pytest.fixture()
-    def fixt(self, input_path, input_file, cdl_type, output_dir, expected_dir):
+    @pytest.fixture(scope="class")
+    def setup(self, input_path, input_file, cdl_type, output_dir, expected_dir):
         print(f'running fixture {input_file}')
 
         # remove the number from the file name
@@ -75,20 +92,20 @@ class TestGroup:
 
 
 
-    def test_correct_number_of_files_created(self, fixt):
-        out_filenames, expected_filenames = fixt
+    def test_correct_number_of_files_created(self, setup):
+        out_filenames, expected_filenames = setup
         expected = len([f for f in expected_filenames if f.endswith('.dat')])
         observed = len([f for f in out_filenames if f.endswith('.dat')])
         assert expected == observed
 
 
-    def test_files_named_correctly(self, fixt):
-        out_filenames, expected_filenames = fixt
+    def test_files_named_correctly(self, setup):
+        out_filenames, expected_filenames = setup
         assert out_filenames == expected_filenames
 
 
-    def test_files_have_correct_content(self, output_dir, expected_dir, fixt):
-        out_filenames, expected_filenames = fixt
+    def test_files_have_correct_content(self, output_dir, expected_dir, setup):
+        out_filenames, expected_filenames = setup
         for i, name in enumerate(expected_filenames):
             expected_file = os.path.join(expected_dir, name)
             out_file = os.path.join(output_dir, name)
@@ -97,32 +114,3 @@ class TestGroup:
                 assert False
         assert True
 
-    # def test_saves_file_position_and_picks_up_where_it_left_off(self, input_path, input_file, output_dir, expected_dir, fixt):
-    #     # Add new data to the input file
-    #     part1 = ""
-    #     part2 = ""
-
-
-    #     with open()
-
-    #     # run the script again
-
-
-    #     # test output
-
-    # def test_files_combined_together_have_same_contents_as_original_for_CR3000(self, input_path, input_file, output_dir, fixt):
-    #     out_filenames, expected_filenames = fixt
-    #     data = ""
-    #     for file in out_filenames:
-    #         path = os.path.join(output_dir, file)
-    #         with open(path, 'r') as f:
-    #             data += f.read()
-
-    #     with open(os.path.join(output_dir, 'recombined.dat'), 'w') as f:
-    #         f.write(data)
-
-    #     original = ""
-    #     with open(os.path.join(input_path, input_file)) as f:
-    #         original = f.read()
-
-    #     assert data == original
