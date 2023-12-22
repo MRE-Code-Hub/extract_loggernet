@@ -1,17 +1,40 @@
+##############################################################################
+#
+# Example conf file for the extract_loggernet script.
+#
+# The extract_loggernet_conf.yaml file must be located in the directory the input
+# file is being generated
+#
+
+##############################################################################
+# Logger Type
+#
+# Generically: CRXXXX or CRXX
+# Or make it specific: CR3000 or CR23
+#
+
 CDL_TYPE: CR23
 
-OUTPUT_DIR: out
+##############################################################################
+# Output Directory
+#   must be an absolute path
 
-SPLIT_INTERVAL: HOURLY
-FILE_NAME_FORMAT: PREFIX.YYYYMMDDhhmmss.EXT
+OUTPUT_DIR: /Users/rasm841/extract_loggernet/out
 
-# RENAME_PREFIX: summary # problem with 'mm' being replaced with minutes value
-# RENAME_EXTENSION: csv
-
+##############################################################################
+# INPUT_FILE         The name of the logger file to extract data from.
+#
+# SPLIT_INTERVAL     Specify DAILY to split files daily instead of the default hourly.
+#
+# RENAME_PREFIX      If set, this will replace original file's prefix
+#                    when naming the extracted output files.
+#
+# RENAME_EXTENSION   If set, this will replace the original input file's extension when
+#                    naming the extracted output files.
+#
 
 INPUT_FILE: 3-GndRadData.dat
-
-
-# BUFFERING: OFF
-# MAX_DEBOUNCE_TIME: 0
-
+SPLIT_INTERVAL: HOURLY
+FILE_NAME_FORMAT: PREFIX.YYYYMMDDhhmmss.EXT
+# RENAME_PREFIX: summary # problem with 'mm' being replaced with minutes value
+# RENAME_EXTENSION: csv
