@@ -9,22 +9,31 @@
 ##############################################################################
 # Logger Type
 #
-# Generically: CRXXXX or CRXX
-# Or make it specific: CR3000 or CR23
+# CDL_TYPE
+#     The type of Campel Data Logger. Default is CR1000X.
+#     Set to 'CR23' to read CR23 data logger files (since
+#     they have a different file format).
+
+#     You could set CDL_TYPE to 'CR1000' or 'CR3000', but
+#     since both of those data loggers use the same file
+#     format as CR1000X, it is unnecessary.
 #
 
 CDL_TYPE: CR23
 
 ##############################################################################
 # Output Directory
-#   must be an absolute path
+#
+# OUTPUT_DIR
+#     The directory to place extracted hourly files in.
+#     Must be an absolute path.
 
 OUTPUT_DIR: /Users/rasm841/extract_loggernet/out
 
 ##############################################################################
 # INPUT_FILE         The name of the logger file to extract data from.
 #
-# SPLIT_INTERVAL     Specify DAILY to split files daily instead of the default hourly.
+# SPLIT_INTERVAL     Specify DAILY to extract daily files instead of the default hourly.
 #
 # RENAME_PREFIX      If set, this will replace original file's prefix
 #                    when naming the extracted output files.
@@ -36,5 +45,3 @@ OUTPUT_DIR: /Users/rasm841/extract_loggernet/out
 INPUT_FILE: 3-GndRadData.dat
 SPLIT_INTERVAL: HOURLY
 FILE_NAME_FORMAT: PREFIX.YYYYMMDDhhmmss.EXT
-# RENAME_PREFIX: summary # problem with 'mm' being replaced with minutes value
-# RENAME_EXTENSION: csv

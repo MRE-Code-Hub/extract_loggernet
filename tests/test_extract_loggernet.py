@@ -117,8 +117,8 @@ class TestGroup:
         extract_loggernet.process_file(
             input_path=input_path,
             input_file=input_file,
-            cdl_type=cdl_type,
             output_dir=output_dir,
+            cdl_type=cdl_type,
             split_interval="HOURLY",
             file_name_format="PREFIX.YYYYMMDDhhmmss.EXT"
         )

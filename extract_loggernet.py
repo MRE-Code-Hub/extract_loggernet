@@ -10,8 +10,8 @@ time. (It will only read data that has been added to the logger file
 since the last time it ran). This data will be saved in a hidden
 `.extract_loggernet_file_position.yaml` file within the given input directory.
 This script requires an `extract_loggernet_conf.yaml` configuration file to
-be located in the specified input directory where the logger
-file is located.
+be located in the specified input directory
+where the logger data file is located.
 
 This script can be run from the command line, or you can
 import this file as a module and call the `process_file`
@@ -47,7 +47,7 @@ def read_yaml(path):
             raise e
 
 
-def extract_time(line, cdl_type):
+def extract_time(line, cdl_type="CR1000X"):
     '''
     Extract time from CRXXX (i.e. CR3000 or CR1000)
     or CRXX (i.e. CR23 or CR10) loggernet files
@@ -58,15 +58,16 @@ def extract_time(line, cdl_type):
         The line of a logger file to extract
         the time from. (i.e. file.readline())
     cdl_type : str
-        The type of Campel Data Logger and files
-        it is producing. (e.g. 'CR3000' or 'CR23')
+        The type of Campel Data Logger. Default is CR1000X.
+        Set to 'CR23' to read CR23 data logger files (since
+        they have a different file format).
 
     Returns
     -------
     Object
         datetime object representing the parsed timestamp.
     '''
-    if cdl_type in ("CRXXXX", "CR3000", "CR1000"):
+    if cdl_type.upper() in ("CR1000X", "CR1000", "CR3000", "CRXXXX"):
         pattern = r"^\"(\d+)-(\d+)-(\d+)\s+(\d+):(\d+):(\d+)"
         date_string = re.match(pattern, line)
         if date_string:
@@ -81,7 +82,7 @@ def extract_time(line, cdl_type):
             )
         return
 
-    if cdl_type in ("CRXX", "CR23", "CR10"):
+    if cdl_type.upper() in ("CR23", "CR10", "CRXX"):
         parsed_date = re.match(r"^\d+,(\d+),(\d+),(\d+),", line)
         if parsed_date:
             # Date format for CRXX:
@@ -105,10 +106,10 @@ def extract_time(line, cdl_type):
             return date + delta
         return
 
-    raise Exception("CDL_TYPE must be in format CRXXXX or CRXX")
+    raise Exception("Cannot process files for CDL_TYPE: {cdl_type}")
 
 
-def extract_header_info(file, cdl_type):
+def extract_header_info(file, cdl_type="CR1000X"):
     '''
     Returns every line in the file that
     preceeds the first line with a timestamp.
@@ -125,8 +126,9 @@ def extract_header_info(file, cdl_type):
     file : <class '_io.TextIOWrapper'>
         The file object of the logger file to read from.
     cdl_type : str
-        The type of Campel Data Logger and files
-        it is producing. (e.g. 'CR3000' or 'CR23')
+        The type of Campel Data Logger. Default is CR1000X.
+        Set to 'CR23' to read CR23 data logger files (since
+        they have a different file format).
 
     Returns
     -------
@@ -267,8 +269,8 @@ def parse_file_handle(input_path, input_file):
 def process_file(
         input_path,
         input_file,
-        cdl_type,
         output_dir,
+        cdl_type="CR1000X",
         split_interval="HOURLY",
         file_name_format="PREFIX.YYYYMMDDhhmmss.EXT",
         rename_prefix=None,
@@ -284,11 +286,12 @@ def process_file(
         The path in which the input file from the Campbell Data Logger resides.
     input_file : str
         The name of the input loggernet file to read.
-    cdl_type : str
-        The type of Campel Data Logger and
-        files it is producing. (e.g. 'CR3000' or 'CR23')
     output_dir : str
         The path of the directory to place the extracted files in.
+    cdl_type : str
+        The type of Campel Data Logger. Default is CR1000X.
+        Set to 'CR23' to read CR23 data logger files (since
+        they have a different file format).
     split_interval : str
         Set to "DAILY" to extract daily summaries
         instead of the default hourly summaries.
@@ -460,8 +463,8 @@ if __name__ == "__main__":
     process_file(
         INPUT_PATH,
         INPUT_FILE,
-        CDL_TYPE,
         OUTPUT_DIR,
+        CDL_TYPE,
         SPLIT_INTERVAL,
         FILE_NAME_FORMAT,
         rename_prefix=RENAME_PREFIX,
