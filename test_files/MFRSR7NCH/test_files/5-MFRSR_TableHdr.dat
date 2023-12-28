@@ -1,5 +1,0 @@
-"TOA5","MFRSR7NCH","Status","1772","CR1000.Std.11","CPU:SUNAE5J6BR_E35A.CR1","17711","TableHdr"
-"TIMESTAMP","RECORD","loggerID","headID","xpgmVerID","xlat","xlon","xSiteElev","xFULLREV","xCRXHSTEPS","xSCANseconds","xSCANnAvg","xSCANtrough","xHOMEoffset","xALLTIMEband"
-"TS","RN","--","--","--","deg","deg","m","--","--","sec","--","--","--","--"
-"","","Smp","Smp","Smp","Smp","Smp","Smp","Smp","Smp","Smp","Smp","Smp","Smp","Smp"
-"2023-03-16 10:01:40",231,1772,180110618,1.2,35.8617,-97.0694,294,800,20,20,1,0,0,0

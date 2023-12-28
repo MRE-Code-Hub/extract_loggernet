@@ -1,6 +1,6 @@
 out
+test_files
+tests
 .dat
 __pycache__
 .pytest_cache
-tests
-test_files
