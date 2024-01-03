@@ -16,7 +16,7 @@ the `.dat` file since the last time it was run. To do this, it saves
 its file position in a hidden `.extract_loggernet_file_position.yaml`
 file within the input directory where the `.dat` file is located.
 
-`extract_loggernet.py` does not make any changes to the original logger file.
+This script does not make any changes to the original logger file.
 Each hour of data is extracted into a separate file, named
 using the provided `file_name_format` parameter, and placed
 in the given `output_dir`.
@@ -26,13 +26,16 @@ import this file as a module and call the `process_file`
 function.
 
 ## Installation and Setup
-- Clone the repo
-- Create a conda environment from the `environment.yaml` file: `conda env create -f environment.yaml`.
-- Activate the conda environment: `conda activate extract_loggernet`.
-- Create a new `extract_loggernet_conf.yaml` file in the directory of the file you want to extract
-data from. Pattern your conf file based on the `extract_loggernet_conf_example.yaml` file.
-- Run `extract_loggernet` using `python3 extract_loggernet.py /path/to/input/directory`. You could also
-import `extract_loggernet` as a python module and run it by calling the `process_file` function like so:
+- Clone this repo and create a new conda environment from the `environment.yaml` file: `conda env create -f environment.yaml`.
+- **Create a new `extract_loggernet_conf.yaml` file in the directory of the file you want to extract
+data from.** Pattern your conf file based on the `extract_loggernet_conf_example.yaml` file.
+
+## Usage
+Run from the terminal (EX: `./extract_loggernet.py /path/to/input/directory`),
+
+or
+
+Import as a python module and run it by calling the `process_file` function like so:
 
 ```
 from extract_loggernet import extract_loggernet
@@ -47,10 +50,19 @@ extract_loggernet.process_file(
 )
 ```
 
-## Usage
 
-## Credits
+## Tests
 
+Each subdirectory within `test_files` contains test files representing a single growing file, as well as a directory for expected output and actual output.
 
-## License
+The test class in `/tests/test_extract_loggernet.py` will simulate a single growing file, and verify that the output is accurate and that the file position is saving correctly.
+It does this by reading each of the test files consecutively and comparing the output with the expected for each file.
+For example, it will process
+`1-CR1000x_PWS_002_IPconnect_Met.dat`,
+`2-CR1000x_PWS_002_IPconnect_Met.dat`,
+`3-CR1000x_PWS_002_IPconnect_Met.dat`,
+and `4-CR1000x_PWS_002_IPconnect_Met.dat`
+in that order, comparing the files in the `/out` directory with those in the `expected` directory before processing the next file.
+
+To run the tests, simply navigate to the top level directory of this repo, and run `pytest` in the terminal.
 
