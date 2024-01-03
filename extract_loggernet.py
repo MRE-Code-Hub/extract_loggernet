@@ -297,7 +297,8 @@ def process_file(
         instead of the default hourly summaries.
     file_name_format : str
         A string specifying the format for naming the output files.
-        'PREFIX' will be replaced with the given prefix parameter.
+        'PREFIX' will be replaced with the prefix of the input file,
+        or with the given rename_prefix parameter.
         Likewise with 'EXT'. 'YYYY' will be replaced with the year,
         'MM' with the month, 'DD' with the day, 'hh' with the hour,
         'mm' with the minute, and 'ss' with the second of the given

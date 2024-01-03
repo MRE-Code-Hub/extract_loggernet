@@ -12,7 +12,7 @@ logger file is located.
 
 Since the Campbell Data Loggers continuously append to a single `.dat` file,
 `extract_loggernet.py` will only read data that has been added to
-the `.dat` file since the last time it was run. To do this, it saves
+the `.dat` file since the last time it executed. To do this, it saves
 its file position in a hidden `.extract_loggernet_file_position.yaml`
 file within the input directory where the `.dat` file is located.
 
@@ -27,8 +27,8 @@ function.
 
 ## Installation and Setup
 - Clone this repo and create a new conda environment from the `environment.yaml` file: `conda env create -f environment.yaml`.
-- **Create a new `extract_loggernet_conf.yaml` file in the directory of the file you want to extract
-data from.** Pattern your conf file based on the `extract_loggernet_conf_example.yaml` file.
+- To run extract_loggernet from the terminal **you must create a new `extract_loggernet_conf.yaml` file
+in the directory of the file you want to extract data from.** Pattern your conf file based on the `extract_loggernet_conf_example.yaml` file.
 
 ## Usage
 Run from the terminal (EX: `./extract_loggernet.py /path/to/input/directory`),
@@ -41,10 +41,10 @@ Import as a python module and run it by calling the `process_file` function like
 from extract_loggernet import extract_loggernet
 
 extract_loggernet.process_file(
-    input_path=input_path,
-    input_file=input_file,
-    output_dir=output_dir,
-    cdl_type=cdl_type,
+    input_path="/path/to/input/directory",
+    input_file="name_of_file",
+    output_dir="/where/to/put/extracted/files",
+    cdl_type="CR1000",
     split_interval="HOURLY",
     file_name_format="PREFIX.YYYYMMDDhhmmss.EXT"
 )

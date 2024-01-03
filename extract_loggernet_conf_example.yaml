@@ -2,12 +2,31 @@
 #
 # Example conf file for the extract_loggernet script.
 #
-# The extract_loggernet_conf.yaml file must be located in the directory the input
-# file is being generated
+# The extract_loggernet_conf.yaml file must be located in
+# the directory where the input file is being generated.
 #
 
+
 ##############################################################################
-# Logger Type
+# REQUIRED PARAMETERS
+#################################################################################
+#
+# INPUT_FILE
+#     The name of the logger file to extract data from.
+#
+INPUT_FILE: 3-GndRadData.dat
+
+
+# OUTPUT_DIR
+#     The directory to place extracted hourly files in.
+#     Must be an absolute path.
+
+OUTPUT_DIR: /Users/rasm841/extract_loggernet/out
+
+
+#################################################################################
+# OPTIONAL PARAMETERS
+#################################################################################
 #
 # CDL_TYPE
 #     The type of Campel Data Logger. Default is CR1000X.
@@ -18,30 +37,36 @@
 #     since both of those data loggers use the same file
 #     format as CR1000X, it is unnecessary.
 #
-
 CDL_TYPE: CR23
 
-##############################################################################
-# Output Directory
-#
-# OUTPUT_DIR
-#     The directory to place extracted hourly files in.
-#     Must be an absolute path.
 
-OUTPUT_DIR: /Users/rasm841/extract_loggernet/out
-
-##############################################################################
-# INPUT_FILE         The name of the logger file to extract data from.
+# SPLIT_INTERVAL
+#     Specify DAILY to extract daily files instead of the default hourly.
 #
-# SPLIT_INTERVAL     Specify DAILY to extract daily files instead of the default hourly.
-#
-# RENAME_PREFIX      If set, this will replace original file's prefix
-#                    when naming the extracted output files.
-#
-# RENAME_EXTENSION   If set, this will replace the original input file's extension when
-#                    naming the extracted output files.
-#
-
-INPUT_FILE: 3-GndRadData.dat
 SPLIT_INTERVAL: HOURLY
+
+
+# FILE_NAME_FORMAT
+#     A string specifying the format for naming the output files.
+#     'PREFIX' will be replaced with the prefix of the input file,
+#     or with the given rename_prefix parameter.
+#     Likewise with 'EXT'. 'YYYY' will be replaced with the year,
+#     'MM' with the month, 'DD' with the day, 'hh' with the hour,
+#     'mm' with the minute, and 'ss' with the second of the given
+#     timestamp parameter. (e.g. 'PREFIX.YYYYMMDDhhmmss.EXT')
+#
 FILE_NAME_FORMAT: PREFIX.YYYYMMDDhhmmss.EXT
+
+
+# RENAME_PREFIX
+#     If set, this will replace original file's prefix
+#     when naming the extracted output files.
+#
+RENAME_PREFIX: my_file_name
+
+
+# RENAME_EXTENSION
+#     If set, this will replace the original input file's extension when
+#     naming the extracted output files.
+#
+RENAME_EXTENSION: csv
