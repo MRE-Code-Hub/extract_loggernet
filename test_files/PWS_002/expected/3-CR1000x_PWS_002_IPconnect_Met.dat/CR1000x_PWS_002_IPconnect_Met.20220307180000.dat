@@ -1,0 +1,6 @@
+"TOA5","CR1000XS_PWS_002_IPconnect","CR1000X","23195","CR1000X.Std.05.01","CPU:PWS_V01_03_Txconstant.CR1X","15650","Met"
+"TIMESTAMP","RECORD","GPSYear","GPSMon","GPSDay","GPSUTC","GPSlat","GPSlon","Batt_Volt_Avg","Batt_Bank1_12v_Avg","Batt_Bank2_12v_Avg","Batt_Bank1_44v_Avg","Batt_Bank2_44v_Avg","InternalTemp_Avg","AirTC_Avg","BP_mbar_Avg","Rad1Raw_Avg","Rad1_Avg","Rad2Raw_Avg","Rad2_Avg","U_Wnd_Avg","V_Wnd_Avg","WS_ms_Avg","WS_ms_Std","True_WindDir","Wdir_rel","Wdir_stationary","heading"
+"TS","RN","","","","","degrees","degrees","Volts","","","","","","Deg C","mbar","","W/m²","","W/m²","","","m/s","m/s","","","",""
+"","","Smp","Smp","Smp","Smp","Smp","Smp","Avg","Avg","Avg","Avg","Avg","Avg","Avg","Avg","Avg","Avg","Avg","Avg","Avg","Avg","Avg","Std","Smp","Smp","Smp","Smp"
+"2022-03-07 18:00:00",12,0,0,0,0,0,0,14.61985,-2.280985E-05,-1.993417E-05,-4.963247E-05,4.228641E-05,21.63007,0,0,-1.078035,107.8035,-0.8822425,88.22425,0,0,0,0,0,0,0,0
+"2022-03-07 18:10:00",13,0,0,0,0,0,0,14.61786,-8.219458E-06,-4.06101E-06,-9.822328E-06,2.789232E-05,21.52508,0,0,-1.093301,109.3301,-0.9744484,97.44484,0,0,0,0,0,0,0,0
