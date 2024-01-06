@@ -26,7 +26,7 @@ import this file as a module and call the `process_file`
 function.
 
 ## Installation and Setup
-- Clone this repo and create a new conda environment from the `environment.yaml` file: `conda env create -f environment.yaml`.
+- Clone this repo and install dependencies either using pip (recommended): `pip install -r requirements.txt`. You could instead create a conda environment if needed: `conda env create -f environment.yaml`.
 - To run extract_loggernet from the terminal **you must create a new `extract_loggernet_conf.yaml` file
 in the directory of the file you want to extract data from.** Pattern your conf file based on the `extract_loggernet_conf_example.yaml` file.
 

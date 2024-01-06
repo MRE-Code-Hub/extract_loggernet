@@ -71,14 +71,14 @@ def extract_time(line, cdl_type="CR1000X"):
         pattern = r"^\"(\d+)-(\d+)-(\d+)\s+(\d+):(\d+):(\d+)"
         date_string = re.match(pattern, line)
         if date_string:
-            year, month, day, hour, minute, second = date_string.groups()
+            yr, mo, day, hr, minute, sec = list(map(int, date_string.groups()))
             return datetime(
-                int(year),
-                int(month),
-                int(day),
-                int(hour),
-                int(minute),
-                int(second)
+                yr,
+                mo,
+                day,
+                hr,
+                minute,
+                sec
             )
         return
 

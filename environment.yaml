@@ -7,5 +7,4 @@ dependencies:
   - pip
   - pip:
     - pyyaml
-    - argparse
     - pytest
