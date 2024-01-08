@@ -422,52 +422,49 @@ if __name__ == "__main__":
     if not os.path.exists(INPUT_PATH):
         raise FileNotFoundError(f"Input path does not exist: '{INPUT_PATH}'")
 
-    # # print(os.getcwd())
-    # input()
-    # # print('changed')
-
-    # # Change the current directory to the
-    # # input path.
-    # INPUT_PATH = os.path.abspath(args.input_path)
-    # os.chdir(INPUT_PATH)
-
-    # # print(os.getcwd())
-    # input()
-
     conf_path = os.path.join(INPUT_PATH, "./extract_loggernet_conf.yaml")
     if not os.path.exists(conf_path):
         raise FileNotFoundError(
-            """Could not find `extract_loggernet_conf.yaml`
-            in the given directory"""
+            f"""No file named `extract_loggernet_conf.yaml`
+            in the {INPUT_PATH}"""
         )
 
     conf = read_yaml(conf_path)
 
-    # Set global variables from the config file
-    CDL_TYPE = conf["CDL_TYPE"]
-    OUTPUT_DIR = conf["OUTPUT_DIR"]
-    SPLIT_INTERVAL = conf["SPLIT_INTERVAL"]
-    FILE_NAME_FORMAT = conf["FILE_NAME_FORMAT"]
-    INPUT_FILE = conf["INPUT_FILE"]
+    # Required config file parameters
+    try:
+        OUTPUT_DIR = conf["OUTPUT_DIR"]
+    except KeyError as exc:
+        raise KeyError(
+            "No key named OUTPUT_DIR in the `extract_loggernet_conf.yaml` file"
+            ) from exc
+    try:
+        INPUT_FILE = conf["INPUT_FILE"]
+    except KeyError as exc:
+        raise KeyError(
+            "No key named INPUT_FILE in the `extract_loggernet_conf.yaml` file"
+            ) from exc
+
+    # Optional config file parameters
+    CDL_TYPE = conf.get("CDL_TYPE", "CR1000X")
+    SPLIT_INTERVAL = conf.get("SPLIT_INTERVAL", "HOURLY")
+    FILE_NAME_FORMAT = conf.get(
+        "FILE_NAME_FORMAT",
+        "PREFIX.YYYYMMDDhhmmss.EXT"
+        )
 
     # If RENAME_PREFIX or RENAME_EXTENSION are included in the
     # conf file, then rename the prefix and extension
-    RENAME_PREFIX = None
-    RENAME_EXTENSION = None
-
-    if "RENAME_PREFIX" in conf.keys():
-        RENAME_PREFIX = conf["RENAME_PREFIX"]
-
-    if "RENAME_EXTENSION" in conf.keys():
-        RENAME_EXTENSION = conf["RENAME_EXTENSION"]
+    RENAME_PREFIX = conf.get("RENAME_PREFIX")
+    RENAME_EXTENSION = conf.get("RENAME_EXTENSION")
 
     process_file(
         INPUT_PATH,
         INPUT_FILE,
         OUTPUT_DIR,
-        CDL_TYPE,
-        SPLIT_INTERVAL,
-        FILE_NAME_FORMAT,
+        cdl_type=CDL_TYPE,
+        split_interval=SPLIT_INTERVAL,
+        file_name_format=FILE_NAME_FORMAT,
         rename_prefix=RENAME_PREFIX,
         rename_extension=RENAME_EXTENSION
     )
