@@ -1,9 +1,7 @@
 ##############################################################################
 #
-# Example conf file for the extract_loggernet script.
+# Example conf file for the extract_loggernet.py script.
 #
-# The extract_loggernet_conf.yaml file must be located in
-# the directory where the input file is being generated.
 #
 
 
@@ -11,17 +9,17 @@
 # REQUIRED PARAMETERS
 #################################################################################
 #
-# INPUT_FILE
-#     The name of the logger file to extract data from.
+# INPUT_FILE_PATH
+#     The absolute path of the logger file to extract data from.
 #
-INPUT_FILE: 3-GndRadData.dat
+INPUT_FILE_PATH: /Users/fred/extract_loggernet/test_files/CR23/3-GndRadData.dat
 
 
 # OUTPUT_DIR
 #     The directory to place extracted hourly files in.
 #     Must be an absolute path.
 
-OUTPUT_DIR: /Users/rasm841/extract_loggernet/out
+OUTPUT_DIR: /Users/fred/extract_loggernet/out
 
 
 #################################################################################
@@ -29,7 +27,7 @@ OUTPUT_DIR: /Users/rasm841/extract_loggernet/out
 #################################################################################
 #
 # CDL_TYPE
-#     The type of Campel Data Logger. Default is CR1000X.
+#     The type of Campbell Data Logger. Default is CR1000X.
 #     Set to 'CR23' to read CR23 data logger files (since
 #     they have a different file format).
 
