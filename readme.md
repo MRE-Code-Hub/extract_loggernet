@@ -1,5 +1,10 @@
 # Extract Loggernet
 
+[![Static Badge](https://img.shields.io/badge/DOI-10.11578/dc.20240322.9-blue)](https://doi.org/10.11578/dc.20240322.9)
+
+[![License](https://img.shields.io/badge/License-BSD_2--Clause-orange.svg)](https://opensource.org/licenses/BSD-2-Clause)
+
+
 ## Description
 
 `extract_loggernet.py` is used to read the infinitely growing
