@@ -225,7 +225,7 @@ def set_file_handle(input_path, input_file, current_pos):
         The current position of the file handle. (i.e. file.tell())
     '''
     prefix = re.split(r"\.|\/", input_file)[-2:][0]
-    cache = os.path.join(input_path, ".extract_loggernet_cache/")
+    cache = f"{CACHE_PATH}{input_path}/.extract_loggernet_cache/"
     filehandle = os.path.join(
         cache,
         f".{prefix}_file_position.yaml"
@@ -265,11 +265,8 @@ def parse_file_handle(input_path, input_file):
         The file position read. If none is found, this defaults to 0.
     '''
     prefix = re.split(r"\.|\/", input_file)[-2:][0]
-    filehandle = os.path.join(
-        input_path,
-        ".extract_loggernet_cache/",
-        f".{prefix}_file_position.yaml"
-    )
+    filehandle = f"{CACHE_PATH}{input_path}/.extract_loggernet_cache/.{prefix}_file_position.yaml"
+
     if os.path.exists(filehandle):
         data = read_yaml(filehandle)
         if data["INPUT_FILE"] == input_file:
@@ -467,13 +464,15 @@ if __name__ == "__main__":
     # conf file, then rename the prefix and extension
     RENAME_PREFIX = conf.get("RENAME_PREFIX")
     RENAME_EXTENSION = conf.get("RENAME_EXTENSION")
+    CACHE_PATH = conf.get("CACHE_PATH")
 
-    process_file(
-        INPUT_FILE_PATH,
+    for infile in INPUT_FILE_PATH:
+      process_file(
+        infile,
         OUTPUT_DIR,
         cdl_type=CDL_TYPE,
         split_interval=SPLIT_INTERVAL,
         file_name_format=FILE_NAME_FORMAT,
         rename_prefix=RENAME_PREFIX,
         rename_extension=RENAME_EXTENSION
-    )
+      )
