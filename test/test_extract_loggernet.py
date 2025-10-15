@@ -628,3 +628,51 @@ class TestPatternMatching:
         finally:
             if os.path.exists(test_base_dir):
                 shutil.rmtree(test_base_dir)
+
+    def test_pattern_relative_to_search_root(self) -> None:
+        """
+        Test that patterns can be specified relative to search_root
+        to avoid redundancy.
+        """
+        import tempfile
+        import shutil
+
+        test_base_dir = tempfile.mkdtemp()
+        try:
+            # Create directory structure: test_base_dir/siteA/loggerX/data.dat
+            site_dir = os.path.join(test_base_dir, "siteA")
+            logger_dir = os.path.join(site_dir, "loggerX")
+            os.makedirs(logger_dir)
+
+            # Create test files
+            file1 = os.path.join(logger_dir, "data1.dat")
+            file2 = os.path.join(logger_dir, "data2.dat")
+            with open(file1, "w") as f:
+                f.write("test")
+            with open(file2, "w") as f:
+                f.write("test")
+
+            # Pattern RELATIVE to search_root (no redundancy!)
+            config = {
+                "pattern": r"^(?P<site>\w+)/(?P<logger>\w+)/.*\.dat$",
+                "search_root": test_base_dir,
+            }
+
+            result = extract_loggernet.resolve_input_files(config)
+
+            # Should find both files
+            assert len(result) == 2
+
+            # Check that captured groups are correct
+            for filepath, groups in result:
+                assert "site" in groups
+                assert "logger" in groups
+                assert groups["site"] == "siteA"
+                assert groups["logger"] == "loggerX"
+                assert filepath.endswith(".dat")
+                # Verify we got the full absolute path back
+                assert os.path.isabs(filepath)
+
+        finally:
+            if os.path.exists(test_base_dir):
+                shutil.rmtree(test_base_dir)

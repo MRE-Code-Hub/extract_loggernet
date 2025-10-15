@@ -18,21 +18,33 @@
 # used to create dynamic output file paths.
 #
 # Named groups use the syntax: (?P<name>...)
-# The pattern should start with ^ to match from the beginning of the path
+#
+# RECOMMENDED: Use patterns relative to search_root to avoid redundancy
 #
 # In this example:
+#   - search_root: /data (tells the system where to search)
+#   - pattern: matches paths RELATIVE to /data
 #   - (?P<site>\w+) captures the site name
 #   - (?P<logger>\w+) captures the logger type
 #
-# For a file path like: /data/site1/CR3000/measurements.dat
-# This will capture: site="site1", logger="CR3000"
+# For a file at: /data/site1/CR3000/measurements.dat
+# The pattern matches the relative path: site1/CR3000/measurements.dat
+# This captures: site="site1", logger="CR3000"
 #
-# The 'search_root' is optional but recommended for performance.
-# It tells the system to only search within /data instead of the entire filesystem.
+# Benefits of relative patterns:
+#   - No redundancy between pattern and search_root
+#   - Cleaner, more readable patterns
+#   - Easier to maintain
 #
 INPUT_FILE_PATH:
-  pattern: '^/data/(?P<site>\w+)/(?P<logger>\w+)/.*\.dat$'
+  pattern: '^(?P<site>\w+)/(?P<logger>\w+)/.*\.dat$'
   search_root: /data
+
+# Alternative: Absolute path pattern (for backward compatibility)
+# INPUT_FILE_PATH:
+#   pattern: '^/data/(?P<site>\w+)/(?P<logger>\w+)/.*\.dat$'
+#   search_root: /data
+# This works but is redundant - the pattern includes /data twice
 
 ##############################################################################
 # UNIFIED OUTPUT FILE PATH (RECOMMENDED)

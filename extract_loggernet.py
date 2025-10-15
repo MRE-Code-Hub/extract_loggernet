@@ -84,7 +84,7 @@ def resolve_input_files(
         input_config = "/path/to/file.dat"
         returns: [("/path/to/file.dat", {})]
 
-    Pattern with named groups:
+    Pattern with named groups (absolute path):
         input_config = {
             "pattern": r"^/data/(?P<site>\\w+)/(?P<logger>\\w+)/.*\\.dat$"
         }
@@ -92,12 +92,17 @@ def resolve_input_files(
         returns: [("/data/site1/logger1/file.dat",
                   {"site": "site1", "logger": "logger1"})]
 
-    Optional search_root to limit search scope:
+    Pattern relative to search_root (recommended):
         input_config = {
-            "pattern": r"^/data/(?P<site>\\w+)/(?P<logger>\\w+)/.*\\.dat$",
+            "pattern": r"^(?P<site>\\w+)/(?P<logger>\\w+)/.*\\.dat$",
             "search_root": "/data"
         }
-        Only searches within /data directory (more efficient for large filesystems)
+        matches: /data/site1/logger1/file.dat (searches only within /data,
+                 pattern matches relative path: site1/logger1/file.dat)
+        returns: [("/data/site1/logger1/file.dat",
+                  {"site": "site1", "logger": "logger1"})]
+
+        This approach avoids redundancy between pattern and search_root.
     """
     if isinstance(input_config, str):
         # Simple single file path
@@ -121,7 +126,16 @@ def resolve_input_files(
         for root, dirs, files in os.walk(search_dir):
             for filename in files:
                 filepath = os.path.join(root, filename)
+
+                # Try matching against full path first (for backward compatibility)
                 match = pattern.match(filepath)
+
+                # If no match and search_root is specified, try relative path
+                if not match and "search_root" in input_config:
+                    # Get path relative to search_root
+                    rel_path = os.path.relpath(filepath, search_dir)
+                    match = pattern.match(rel_path)
+
                 if match:
                     # Extract named groups
                     captured_groups = match.groupdict()
