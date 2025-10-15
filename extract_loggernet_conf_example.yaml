@@ -9,14 +9,42 @@
 ##############################################################################
 #
 # INPUT_FILE_PATH
-#     The absolute path of the logger file to extract data from.
+#     The path(s) of the logger file(s) to extract data from.
+#     Can be specified in three ways:
+#
+#     1. Single file path (string):
+#        INPUT_FILE_PATH: /path/to/file.dat
+#
+#     2. List of file paths:
+#        INPUT_FILE_PATH:
+#          - /path/to/file1.dat
+#          - /path/to/file2.dat
+#
+#     3. Pattern with named capture groups (advanced):
+#        INPUT_FILE_PATH:
+#          pattern: '^/data/(?P<site>\w+)/(?P<logger>\w+)/.*\.dat$'
+#          search_root: /data  # Optional: limits search to this directory
+#
+#        The pattern is a Python regex with named groups (e.g., (?P<name>...)).
+#        The pattern should match complete file paths (use ^ for start).
+#        The optional 'search_root' limits where to search for performance.
+#        Captured group names can be used as placeholders in OUTPUT_DIR.
+#        For example, if the pattern matches /data/site1/CR1000/file.dat,
+#        then {site} = "site1" and {logger} = "CR1000" can be used in OUTPUT_DIR.
 #
 INPUT_FILE_PATH: /Users/fred/extract_loggernet/test_files/CR23/3-GndRadData.dat
 
 # OUTPUT_DIR
 #     The directory to place extracted hourly files in.
 #     Must be an absolute path.
-
+#
+#     If INPUT_FILE_PATH uses pattern matching with named groups,
+#     you can use those captured values as placeholders:
+#        OUTPUT_DIR: /output/{site}/{logger}
+#
+#     For simple file paths (no pattern), just use a regular path:
+#        OUTPUT_DIR: /Users/fred/extract_loggernet/out
+#
 OUTPUT_DIR: /Users/fred/extract_loggernet/out
 
 ##############################################################################
@@ -41,29 +69,42 @@ SPLIT_INTERVAL: HOURLY
 
 # FILE_NAME_FORMAT
 #     A string specifying the format for naming the output files.
-#     'PREFIX' will be replaced with the prefix of the input file,
-#     or with the given rename_prefix parameter.
-#     Likewise with 'EXT'. 'YYYY' will be replaced with the year,
-#     'MM' with the month, 'DD' with the day, 'hh' with the hour,
-#     'mm' with the minute, and 'ss' with the second of the given
-#     timestamp parameter. (e.g. 'PREFIX.YYYYMMDDhhmmss.EXT')
+#     Supports multiple types of placeholders:
 #
-#     You can also include directory separators to create nested
-#     directory structures. For example:
-#         'YYYY/MM/PREFIX.YYYYMMDDhhmmss.EXT'
-#     will organize files into year/month subdirectories like:
-#         output_dir/2025/10/my_file.20251015120000.csv
+#     Timestamp placeholders:
+#       YYYY (year), MM (month), DD (day), hh (hour), mm (minute), ss (second)
+#
+#     Input file placeholders:
+#       PREFIX - Original input filename without extension
+#       EXT    - Original input file extension
+#
+#     Captured group placeholders (when using pattern matching):
+#       {group_name} - Any named group from INPUT_FILE_PATH pattern
+#
+#     Examples:
+#       'PREFIX.YYYYMMDDhhmmss.EXT'
+#           Uses original filename: mydata.20251015120000.dat
+#
+#       '{site}_{logger}_data.YYYYMMDDhhmmss.csv'
+#           Uses captured groups: siteA_CR3000_data.20251015120000.csv
+#
+#       'YYYY/MM/PREFIX.YYYYMMDDhhmmss.EXT'
+#           Nested directories: 2025/10/mydata.20251015120000.dat
+#
+#       'YYYY/MM/{site}/data.YYYYMMDDhhmmss.csv'
+#           Combined: 2025/10/siteA/data.20251015120000.csv
 #
 FILE_NAME_FORMAT: PREFIX.YYYYMMDDhhmmss.EXT
-
-# RENAME_PREFIX
-#     If set, this will replace original file's prefix
-#     when naming the extracted output files.
+# RENAME_PREFIX (DEPRECATED - use literal names in FILE_NAME_FORMAT instead)
+#     Legacy option: If set, this will replace original file's prefix.
+#     Better approach: Use literal names directly in FILE_NAME_FORMAT
+#     Example: 'my_custom_name.YYYYMMDDhhmmss.csv'
 #
-RENAME_PREFIX: my_file_name
+# RENAME_PREFIX: my_file_name
 
-# RENAME_EXTENSION
-#     If set, this will replace the original input file's extension when
-#     naming the extracted output files.
+# RENAME_EXTENSION (DEPRECATED - use literal extension in FILE_NAME_FORMAT)
+#     Legacy option: If set, replaces the original file's extension.
+#     Better approach: Use literal extension in FILE_NAME_FORMAT
+#     Example: 'PREFIX.YYYYMMDDhhmmss.csv'
 #
-RENAME_EXTENSION: csv
+# RENAME_EXTENSION: csv

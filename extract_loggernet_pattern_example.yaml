@@ -1,0 +1,122 @@
+##############################################################################
+#
+# Example configuration file demonstrating pattern matching with named
+# capture groups for dynamic output paths.
+#
+# This example shows how to process multiple logger files organized by
+# site and logger type, with outputs automatically organized into
+# corresponding directories.
+#
+##############################################################################
+
+##############################################################################
+# PATTERN-BASED INPUT FILE MATCHING
+##############################################################################
+#
+# Use a regex pattern with named capture groups to match multiple files
+# and extract metadata from their paths. The captured values can then be
+# used to create dynamic output file paths.
+#
+# Named groups use the syntax: (?P<name>...)
+# The pattern should start with ^ to match from the beginning of the path
+#
+# In this example:
+#   - (?P<site>\w+) captures the site name
+#   - (?P<logger>\w+) captures the logger type
+#
+# For a file path like: /data/site1/CR3000/measurements.dat
+# This will capture: site="site1", logger="CR3000"
+#
+# The 'search_root' is optional but recommended for performance.
+# It tells the system to only search within /data instead of the entire filesystem.
+#
+INPUT_FILE_PATH:
+  pattern: '^/data/(?P<site>\w+)/(?P<logger>\w+)/.*\.dat$'
+  search_root: /data
+
+##############################################################################
+# UNIFIED OUTPUT FILE PATH (RECOMMENDED)
+##############################################################################
+#
+# OUTPUT_FILE_PATH combines directory structure and filename in one template.
+# Use {placeholder} syntax for all variables:
+#   - {site}, {logger} = captured groups from the pattern
+#   - {YYYY}, {MM}, {DD} = timestamp components (year, month, day)
+#   - {hh}, {mm}, {ss} = timestamp components (hour, minute, second)
+#   - {PREFIX}, {EXT} = original filename prefix and extension
+#
+# This is the preferred approach for new configurations.
+#
+# Examples:
+
+# Option 1: Organize by site/logger with timestamped filenames
+OUTPUT_FILE_PATH: /output/{site}/{logger}/{site}_{logger}_data.{YYYY}{MM}{DD}{hh}{mm}{ss}.csv
+
+# Option 2: Organize by date hierarchy with captured groups in filename
+# OUTPUT_FILE_PATH: /output/{YYYY}/{MM}/{DD}/{site}_{logger}_data.{hh}{mm}{ss}.csv
+
+# Option 3: Mix captured groups and timestamps in directory structure
+# OUTPUT_FILE_PATH: /output/{site}/{YYYY}/{MM}/{logger}_data.{YYYY}{MM}{DD}{hh}{mm}{ss}.csv
+
+# Option 4: Keep original filename structure
+# OUTPUT_FILE_PATH: /output/{site}/{logger}/{PREFIX}.{YYYY}{MM}{DD}{hh}{mm}{ss}.{EXT}
+
+##############################################################################
+# LEGACY CONFIGURATION (For backward compatibility)
+##############################################################################
+#
+# The old OUTPUT_DIR + FILE_NAME_FORMAT approach still works but is deprecated.
+# Prefer OUTPUT_FILE_PATH for new configurations.
+#
+# If you use the legacy approach, OUTPUT_FILE_PATH should NOT be specified.
+#
+# OUTPUT_DIR: /output/{site}/{logger}
+# FILE_NAME_FORMAT: "{site}_{logger}_data.YYYYMMDDhhmmss.csv"
+#
+# Note: Legacy syntax supports both {placeholder} and bare placeholder (e.g., YYYY)
+#       for backward compatibility, but {placeholder} is recommended.
+#
+##############################################################################
+
+##############################################################################
+# OPTIONAL PARAMETERS
+##############################################################################
+
+CDL_TYPE: CR1000X
+
+SPLIT_INTERVAL: HOURLY
+##############################################################################
+# EXAMPLE WORKFLOW
+##############################################################################
+#
+# If you have files organized like:
+#   /data/
+#     siteA/
+#       CR3000/
+#         logger_data_2024.dat
+#       CR1000/
+#         logger_data_2024.dat
+#     siteB/
+#       CR3000/
+#         measurements.dat
+#
+# With OUTPUT_FILE_PATH: /output/{site}/{logger}/{site}_{logger}_data.{YYYY}{MM}{DD}{hh}{mm}{ss}.csv
+#
+# The pattern will match all .dat files and extract them to:
+#   /output/
+#     siteA/
+#       CR3000/
+#         siteA_CR3000_data.20240115120000.csv
+#         siteA_CR3000_data.20240115130000.csv
+#       CR1000/
+#         siteA_CR1000_data.20240115120000.csv
+#         siteA_CR1000_data.20240115130000.csv
+#     siteB/
+#       CR3000/
+#         siteB_CR3000_data.20240115120000.csv
+#         siteB_CR3000_data.20240115130000.csv
+#
+# Notice how {site} and {logger} are automatically populated in both
+# directory structure and filenames!
+#
+##############################################################################

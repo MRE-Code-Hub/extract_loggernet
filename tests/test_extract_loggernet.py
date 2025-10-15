@@ -388,3 +388,231 @@ class TestDirectoryStructure:
         finally:
             if os.path.exists(test_dir):
                 shutil.rmtree(test_dir)
+
+
+class TestPatternMatching:
+    """Tests for INPUT_FILE_PATH pattern matching with named capture groups."""
+
+    def test_resolve_simple_string(self) -> None:
+        """Test that simple string paths work (backward compatibility)."""
+        result = extract_loggernet.resolve_input_files("/path/to/file.dat")
+        assert len(result) == 1
+        assert result[0] == ("/path/to/file.dat", {})
+
+    def test_resolve_list(self) -> None:
+        """Test that list of paths works (backward compatibility)."""
+        paths = ["/path/to/file1.dat", "/path/to/file2.dat"]
+        result = extract_loggernet.resolve_input_files(paths)
+        assert len(result) == 2
+        assert result[0] == ("/path/to/file1.dat", {})
+        assert result[1] == ("/path/to/file2.dat", {})
+
+    def test_pattern_matching_with_named_groups(self) -> None:
+        """Test pattern matching extracts named groups from file paths."""
+        import tempfile
+        import shutil
+
+        # Create test directory structure: base/siteA/loggerX/file.dat
+        test_dir = tempfile.mkdtemp()
+        try:
+            site_dir = os.path.join(test_dir, "siteA")
+            logger_dir = os.path.join(site_dir, "loggerX")
+            os.makedirs(logger_dir)
+
+            # Create test files
+            file1 = os.path.join(logger_dir, "data1.dat")
+            file2 = os.path.join(logger_dir, "data2.dat")
+            with open(file1, "w") as f:
+                f.write("test")
+            with open(file2, "w") as f:
+                f.write("test")
+
+            # Pattern with named groups
+            config = {
+                "pattern": r"^.*\/(?P<site>\w+)\/(?P<logger>\w+)\/.*\.dat$",
+                "search_root": test_dir,
+            }
+
+            result = extract_loggernet.resolve_input_files(config)
+
+            # Should find both files
+            assert len(result) == 2
+
+            # Check that captured groups are correct
+            for filepath, groups in result:
+                assert "site" in groups
+                assert "logger" in groups
+                assert groups["site"] == "siteA"
+                assert groups["logger"] == "loggerX"
+                assert filepath.endswith(".dat")
+
+        finally:
+            if os.path.exists(test_dir):
+                shutil.rmtree(test_dir)
+
+    def test_substitute_output_dir(self) -> None:
+        """Test that OUTPUT_DIR placeholder substitution works."""
+        template = "/output/{site}/{logger}/data"
+        groups = {"site": "siteA", "logger": "CR1000"}
+
+        result = extract_loggernet.substitute_output_dir(template, groups)
+        assert result == "/output/siteA/CR1000/data"
+
+    def test_substitute_output_dir_empty_groups(self) -> None:
+        """Test OUTPUT_DIR substitution with no captured groups."""
+        template = "/output/fixed/path"
+        groups: dict[str, str] = {}
+
+        result = extract_loggernet.substitute_output_dir(template, groups)
+        assert result == "/output/fixed/path"
+
+    def test_end_to_end_pattern_matching(self) -> None:
+        """
+        Test complete workflow: pattern matching files and
+        outputting to directories based on captured groups.
+        """
+        import tempfile
+        import shutil
+
+        test_base_dir = tempfile.mkdtemp()
+        try:
+            # Create directory structure: input/site1/CR3000/file.dat
+            site_dir = os.path.join(test_base_dir, "input", "site1")
+            logger_dir = os.path.join(site_dir, "CR3000")
+            os.makedirs(logger_dir)
+
+            # Copy a test file
+            src_file = "./test_files/CR3000/1-CR3000_Table213.dat"
+            dst_file = os.path.join(logger_dir, "test.dat")
+            shutil.copy(src_file, dst_file)
+
+            # Create output base directory
+            output_base = os.path.join(test_base_dir, "output")
+            os.makedirs(output_base)
+
+            # Pattern config
+            config = {
+                "pattern": r"^.*\/input\/(?P<site>\w+)\/(?P<logger>\w+)\/.*\.dat$",
+                "search_root": os.path.join(test_base_dir, "input"),
+            }
+
+            # Resolve files
+            files = extract_loggernet.resolve_input_files(config)
+            assert len(files) == 1
+
+            filepath, groups = files[0]
+            assert groups["site"] == "site1"
+            assert groups["logger"] == "CR3000"
+
+            # Substitute output directory
+            output_template = output_base + "/{site}/{logger}"
+            output_dir = extract_loggernet.substitute_output_dir(
+                output_template, groups
+            )
+            assert output_dir == os.path.join(output_base, "site1", "CR3000")
+
+            # Create the output directory (normally done by process_file)
+            os.makedirs(output_dir, exist_ok=True)
+
+            # Process the file
+            extract_loggernet.process_file(
+                input_file_path=filepath,
+                output_dir=output_dir,
+                cdl_type="CR3000",
+                split_interval="HOURLY",
+                file_name_format="PREFIX.YYYYMMDDhhmmss.EXT",
+                rename_prefix="test",
+                rename_extension="dat",
+            )
+
+            # Verify output files were created in the right place
+            assert os.path.exists(output_dir)
+            files_created = os.listdir(output_dir)
+            assert len(files_created) > 0
+
+            # Verify file is in the correct site/logger subdirectory
+            expected_path = os.path.join(output_base, "site1", "CR3000")
+            assert os.path.exists(expected_path)
+
+            print(
+                f"✓ Pattern matching worked: created {len(files_created)} "
+                f"files in {output_dir}"
+            )
+
+        finally:
+            if os.path.exists(test_base_dir):
+                shutil.rmtree(test_base_dir)
+
+    def test_captured_groups_in_filename(self) -> None:
+        """
+        Test that captured groups from pattern matching can be used
+        in FILE_NAME_FORMAT with {group_name} syntax.
+        """
+        import tempfile
+        import shutil
+
+        test_base_dir = tempfile.mkdtemp()
+        try:
+            # Create directory structure: input/siteA/loggerX/file.dat
+            site_dir = os.path.join(test_base_dir, "input", "siteA")
+            logger_dir = os.path.join(site_dir, "loggerX")
+            os.makedirs(logger_dir)
+
+            # Copy a test file
+            src_file = "./test_files/CR3000/1-CR3000_Table213.dat"
+            dst_file = os.path.join(logger_dir, "measurements.dat")
+            shutil.copy(src_file, dst_file)
+
+            # Create output base directory
+            output_base = os.path.join(test_base_dir, "output")
+            os.makedirs(output_base)
+
+            # Pattern config
+            config = {
+                "pattern": r"^.*\/input\/(?P<site>\w+)\/(?P<logger>\w+)\/.*\.dat$",
+                "search_root": os.path.join(test_base_dir, "input"),
+            }
+
+            # Resolve files
+            files = extract_loggernet.resolve_input_files(config)
+            assert len(files) == 1
+
+            filepath, groups = files[0]
+            assert groups["site"] == "siteA"
+            assert groups["logger"] == "loggerX"
+
+            # Use captured groups in filename format
+            output_dir = output_base
+            file_name_format = "{site}_{logger}_data.YYYYMMDDhhmmss.csv"
+
+            # Process the file with captured groups in filename
+            extract_loggernet.process_file(
+                input_file_path=filepath,
+                output_dir=output_dir,
+                cdl_type="CR3000",
+                split_interval="HOURLY",
+                file_name_format=file_name_format,
+                captured_groups=groups,
+            )
+
+            # Verify files were created with correct names
+            files_created = os.listdir(output_dir)
+            assert len(files_created) > 0
+
+            # Check that all files start with site_logger pattern
+            for filename in files_created:
+                assert filename.startswith(
+                    "siteA_loggerX_data."
+                ), f"File {filename} doesn't match pattern with captured groups"
+                assert filename.endswith(
+                    ".csv"
+                ), f"File {filename} doesn't have .csv extension"
+
+            print(
+                f"✓ Captured groups in filename: created {len(files_created)} "
+                f"files with pattern siteA_loggerX_data.*.csv"
+            )
+
+        finally:
+            if os.path.exists(test_base_dir):
+                shutil.rmtree(test_base_dir)

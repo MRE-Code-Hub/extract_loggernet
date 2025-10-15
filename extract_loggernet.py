@@ -24,7 +24,7 @@ import argparse
 from datetime import datetime, timedelta
 import re
 import os
-from typing import Any, Optional
+from typing import Any, Dict, List, Optional, Tuple
 import yaml
 
 # Global variable for cache path
@@ -50,6 +50,120 @@ def read_yaml(path: str) -> Any:
             return yaml.safe_load(f)
         except yaml.YAMLError as e:
             raise e
+
+
+def resolve_input_files(
+    input_config: Any, search_root: str = "/"
+) -> List[Tuple[str, Dict[str, str]]]:
+    """
+    Resolve input file paths, supporting both simple paths/lists and
+    pattern-based matching with named capture groups.
+
+    Parameters
+    ----------
+    input_config : str, list, or dict
+        Can be:
+        - A single file path (str)
+        - A list of file paths
+        - A dict with 'pattern' key containing a regex pattern with named groups,
+          and optional 'search_root' to limit where to search for files
+    search_root : str
+        Root directory to start searching when using pattern matching.
+        Only used if input_config is a dict with 'pattern'.
+        Defaults to "/" (entire filesystem).
+
+    Returns
+    -------
+    list of tuples
+        Each tuple contains (file_path, captured_groups_dict)
+        where captured_groups_dict contains any named groups from pattern matching
+
+    Examples
+    --------
+    Simple path:
+        input_config = "/path/to/file.dat"
+        returns: [("/path/to/file.dat", {})]
+
+    Pattern with named groups:
+        input_config = {
+            "pattern": r"^/data/(?P<site>\\w+)/(?P<logger>\\w+)/.*\\.dat$"
+        }
+        matches: /data/site1/logger1/file.dat
+        returns: [("/data/site1/logger1/file.dat",
+                  {"site": "site1", "logger": "logger1"})]
+
+    Optional search_root to limit search scope:
+        input_config = {
+            "pattern": r"^/data/(?P<site>\\w+)/(?P<logger>\\w+)/.*\\.dat$",
+            "search_root": "/data"
+        }
+        Only searches within /data directory (more efficient for large filesystems)
+    """
+    if isinstance(input_config, str):
+        # Simple single file path
+        return [(input_config, {})]
+
+    if isinstance(input_config, list):
+        # List of file paths
+        return [(path, {}) for path in input_config]
+
+    if isinstance(input_config, dict) and "pattern" in input_config:
+        # Pattern-based matching
+        pattern_str = input_config["pattern"]
+        # Allow user to specify search_root to limit search scope
+        search_dir = input_config.get("search_root", search_root)
+
+        # Compile the regex pattern
+        pattern = re.compile(pattern_str)
+
+        # Find all files in the directory tree
+        results = []
+        for root, dirs, files in os.walk(search_dir):
+            for filename in files:
+                filepath = os.path.join(root, filename)
+                match = pattern.match(filepath)
+                if match:
+                    # Extract named groups
+                    captured_groups = match.groupdict()
+                    results.append((filepath, captured_groups))
+
+        return results
+
+    # If we get here, unsupported format
+    raise ValueError(
+        f"INPUT_FILE_PATH must be a string, list, or dict with 'pattern' key. "
+        f"Got: {type(input_config)}"
+    )
+
+
+def substitute_output_dir(
+    output_dir_template: str, captured_groups: Dict[str, str]
+) -> str:
+    """
+    Substitute captured group values into OUTPUT_DIR template.
+
+    Parameters
+    ----------
+    output_dir_template : str
+        Output directory path with placeholders like {site}, {logger}, etc.
+    captured_groups : dict
+        Dictionary of captured group names and their values
+
+    Returns
+    -------
+    str
+        Output directory path with placeholders replaced
+
+    Examples
+    --------
+    >>> substitute_output_dir("/out/{site}/{logger}", {"site": "A", "logger": "B"})
+    '/out/A/B'
+    """
+    result = output_dir_template
+    for key, value in captured_groups.items():
+        placeholder = "{" + key + "}"
+        result = result.replace(placeholder, value)
+    return result
 
 
 def extract_time(line: str, cdl_type: str = "CR1000X") -> Optional[datetime]:
@@ -145,14 +259,88 @@ def extract_header_info(file: Any, cdl_type: str = "CR1000X") -> str:
     return header
 
 
+def substitute_placeholders(
+    template: str,
+    timestamp: datetime,
+    prefix: str = "",
+    extension: str = "",
+    captured_groups: Optional[Dict[str, str]] = None,
+) -> str:
+    """
+    Substitute all placeholders in a template string.
+
+    Supports both new {bracket} syntax and legacy BARE syntax for compatibility.
+
+    Parameters
+    ----------
+    template : str
+        Template string with placeholders
+    timestamp : datetime
+        Timestamp for date/time placeholders
+    prefix : str
+        Original input filename prefix (without extension)
+    extension : str
+        Original input file extension
+    captured_groups : dict, optional
+        Captured groups from pattern matching
+
+    Returns
+    -------
+    str
+        Template with all placeholders substituted
+
+    Examples
+    --------
+    New syntax (recommended):
+        '{site}/{logger}/{YYYY}/{MM}/data.{YYYY}{MM}{DD}{hh}{mm}{ss}.csv'
+
+    Legacy syntax (still supported):
+        'YYYY/MM/PREFIX.YYYYMMDDhhmmss.EXT'
+
+    Mixed syntax (works):
+        '{site}/YYYY/MM/{logger}_data.YYYYMMDDhhmmss.csv'
+    """
+    result = template
+
+    # First, substitute captured groups
+    if captured_groups:
+        result = substitute_output_dir(result, captured_groups)
+
+    # Parse timestamp
+    parsed_t_stamp = re.split("-|T|:", timestamp.isoformat())
+    year, month, day, hour, minute, second = parsed_t_stamp
+
+    # New syntax: {YYYY}, {MM}, etc. (preferred)
+    result = result.replace("{YYYY}", year)
+    result = result.replace("{MM}", month)
+    result = result.replace("{DD}", day)
+    result = result.replace("{hh}", hour)
+    result = result.replace("{mm}", minute)
+    result = result.replace("{ss}", second)
+    result = result.replace("{PREFIX}", prefix)
+    result = result.replace("{EXT}", extension)
+
+    # Legacy syntax: YYYY, MM, etc. (for backward compatibility)
+    result = re.sub("YYYY", year, result)
+    result = re.sub("MM", month, result)
+    result = re.sub("DD", day, result)
+    result = re.sub("hh", hour, result)
+    result = re.sub("mm", minute, result)
+    result = re.sub("ss", second, result)
+    result = re.sub("PREFIX", prefix, result)
+    result = re.sub("EXT", extension, result)
+
+    return result
+
+
 def write_new_hourly_file(
-    output_dir: str,
-    file_name_format: str,
+    output_file_path: str,
     prefix: str,
     extension: str,
     header: str,
     data: str,
     timestamp: datetime,
+    captured_groups: Optional[Dict[str, str]] = None,
 ) -> None:
     """
     Writes the given interval of data to a separate timestamped file.
@@ -160,50 +348,42 @@ def write_new_hourly_file(
 
     Parameters
     ---------
-    output_dir : str
-        The directory to place the extracted file in.
-    file_name_format : str
-        A string specifying the format for naming the output files.
-        'PREFIX' will be replaced with the given prefix parameter.
-        Likewise with 'EXT'. 'YYYY' will be replaced with the year,
-        'MM' with the month, 'DD' with the day, 'hh' with the hour,
-        'mm' with the minute, and 'ss' with the second of the given
-        timestamp parameter. (e.g. 'PREFIX.YYYYMMDDhhmmss.EXT')
-        You can also include directory separators to create nested
-        directory structures (e.g. 'YYYY/MM/PREFIX.YYYYMMDDhhmmss.EXT'
-        will create year and month subdirectories).
+    output_file_path : str
+        Template for the full output file path (combines directory and filename).
+        Supports placeholders:
+        - Timestamp: {YYYY}, {MM}, {DD}, {hh}, {mm}, {ss} (or bare YYYY, MM, etc.)
+        - Input file: {PREFIX}, {EXT} (or bare PREFIX, EXT)
+        - Captured groups: {group_name} for any named groups from pattern
+
+        Examples:
+        - '/output/PREFIX.{YYYY}{MM}{DD}{hh}{mm}{ss}.EXT'
+        - '/output/{site}/{logger}/{YYYY}/{MM}/data.{YYYY}{MM}{DD}.csv'
+        - '/output/YYYY/MM/PREFIX.YYYYMMDDhhmmss.EXT' (legacy)
     prefix : str
-        The string to replace 'PREFIX' in the given file_name_format string.
+        The original input file's prefix (filename without extension).
+        Used to replace PREFIX placeholder.
     extension : str
-        The string to replace 'EXT' in the given file_name_format string.
+        The original input file's extension.
+        Used to replace EXT placeholder.
     header : str
         The header lines of the original logger file,
         extracted by calling `extract_header_info`.
     data : str
         The data to write to the extracted file.
     timestamp : datetime.datetime object
-        The datetime timestamp to substitute in to the file_name_format string.
+        The datetime timestamp to substitute in to the output_file_path.
+    captured_groups : dict, optional
+        Dictionary of captured group names and values from pattern matching.
+        These can be used as {name} placeholders in output_file_path.
     """
-    filename = file_name_format
-    filename = re.sub("PREFIX", prefix, filename)
-    filename = re.sub("EXT", extension, filename)
-    parsed_t_stamp = re.split("-|T|:", timestamp.isoformat())
-    year, month, day, hour, minute, second = parsed_t_stamp
-    filename = re.sub("YYYY", year, filename)
-    filename = re.sub("MM", month, filename)
-    filename = re.sub("DD", day, filename)
-    filename = re.sub("hh", hour, filename)
-    filename = re.sub("mm", minute, filename)
-    filename = re.sub("ss", second, filename)
-
-    # Check if there is a file with this filename already.
-    # If there is, then append this data to that file.
-    filepath = os.path.join(output_dir, filename)
+    # Substitute all placeholders
+    filepath = substitute_placeholders(
+        output_file_path, timestamp, prefix, extension, captured_groups
+    )
 
     # Create parent directories if they don't exist
-    # (e.g., when FILE_NAME_FORMAT contains directory separators like YYYY/MM/)
     parent_dir = os.path.dirname(filepath)
-    if parent_dir:  # Only create if there's a parent directory
+    if parent_dir:
         os.makedirs(parent_dir, exist_ok=True)
 
     if os.path.exists(filepath):
@@ -280,23 +460,25 @@ def parse_file_handle(input_path: str, input_file: str) -> int:
 
 def process_file(
     input_file_path: str,
-    output_dir: str,
+    output_dir: str = "",
     cdl_type: str = "CR1000X",
     split_interval: str = "HOURLY",
     file_name_format: str = "PREFIX.YYYYMMDDhhmmss.EXT",
     rename_prefix: Optional[str] = None,
     rename_extension: Optional[str] = None,
+    captured_groups: Optional[Dict[str, str]] = None,
+    output_file_path: Optional[str] = None,
 ) -> None:
     """
     Read the input file from the given input_file_path and extract
-    each hour of data into a separate timestamped file. Extracted files
-    will be saved in the given output_dir with the specified file_name_format.
+    each hour of data into a separate timestamped file.
 
     Parameters
     ----------
     input_file_path : str
         The path to the loggernet file to extract chunks from.
-    output_dir : str
+    output_dir : str, optional
+        DEPRECATED: Use output_file_path instead.
         The path of the directory to place the extracted files in.
     cdl_type : str
         The type of Campbell Data Logger. Default is CR1000X.
@@ -305,31 +487,47 @@ def process_file(
     split_interval : str
         Set to "DAILY" to extract daily summaries
         instead of the default hourly summaries.
-    file_name_format : str
+    file_name_format : str, optional
+        DEPRECATED: Use output_file_path instead.
         A string specifying the format for naming the output files.
-        'PREFIX' will be replaced with the prefix of the input file,
-        or with the given rename_prefix parameter.
-        Likewise with 'EXT'. 'YYYY' will be replaced with the year,
-        'MM' with the month, 'DD' with the day, 'hh' with the hour,
-        'mm' with the minute, and 'ss' with the second of the given
-        timestamp parameter. (e.g. 'PREFIX.YYYYMMDDhhmmss.EXT')
-        You can also include directory separators to create nested
-        directory structures (e.g. 'YYYY/MM/PREFIX.YYYYMMDDhhmmss.EXT'
-        will create year and month subdirectories).
-    rename_prefix : str
-        If set, this will replace original file's prefix
-        when naming the extracted output files.
-    rename_extension : str
-        If set, this will replace the original input file's extension when
-        naming the extracted output files.
+    rename_prefix : str, optional
+        DEPRECATED: Use literal values in output_file_path instead.
+    rename_extension : str, optional
+        DEPRECATED: Use literal values in output_file_path instead.
+    captured_groups : dict, optional
+        Dictionary of captured group names and values from pattern matching.
+        These can be used as {name} placeholders in output_file_path.
+    output_file_path : str, optional
+        RECOMMENDED: Template for the complete output file path.
+        Combines directory and filename with full placeholder support.
+
+        Supports placeholders (new {bracket} or legacy BARE syntax):
+        - Timestamp: {YYYY}/{MM}/{DD}/{hh}/{mm}/{ss}
+        - Input file: {PREFIX}, {EXT}
+        - Captured groups: {group_name}
+
+        Examples:
+        - '/output/{site}/{logger}/{YYYY}/{MM}/data.{YYYY}{MM}{DD}.csv'
+        - '/output/YYYY/MM/PREFIX.YYYYMMDDhhmmss.EXT' (legacy syntax works)
+
+        If not provided, will construct from output_dir + file_name_format
+        for backward compatibility.
     """
+    # Backward compatibility: construct output_file_path from old parameters
+    if output_file_path is None:
+        if not output_dir:
+            raise ValueError("Either output_file_path or output_dir must be provided")
+        output_file_path = os.path.join(output_dir, file_name_format)
+
     # split the input directory into head and tail parts
     input_path, input_file = os.path.split(input_file_path)
 
     if not os.path.exists(input_file_path):
         raise FileNotFoundError(f"Input file path does not exist: '{input_file}'")
 
-    if not os.path.exists(output_dir):
+    # For backward compatibility, check output_dir if provided
+    # But with output_file_path, we'll create directories as needed
+    if output_dir and not os.path.exists(output_dir):
         raise FileNotFoundError(f"Output directory does not exist: '{output_dir}'")
 
     # get file prefix and extension
@@ -358,13 +556,13 @@ def process_file(
                 # of the data later.
                 if previous_timestamp:
                     write_new_hourly_file(
-                        output_dir,
-                        file_name_format,
+                        output_file_path,
                         prefix,
                         extension,
                         header_info,
                         temp_data_lines,
                         previous_timestamp,
+                        captured_groups,
                     )
                     set_file_handle(input_path, input_file, current_file_position)
                 # print("end of file")
@@ -387,13 +585,13 @@ def process_file(
                     # print(t.replace(minute=0, second=0, microsecond=0))
                     # print()
                     write_new_hourly_file(
-                        output_dir,
-                        file_name_format,
+                        output_file_path,
                         prefix,
                         extension,
                         header_info,
                         temp_data_lines,
                         previous_timestamp,
+                        captured_groups,
                     )
                     set_file_handle(input_path, input_file, current_file_position)
                     temp_data_lines = ""
@@ -429,15 +627,26 @@ def main() -> None:
 
     conf = read_yaml(conf_path)
 
-    # Required config file parameters
+    # Check for new unified OUTPUT_FILE_PATH parameter
+    output_file_path_template = conf.get("OUTPUT_FILE_PATH")
+
+    # Backward compatibility: support old OUTPUT_DIR + FILE_NAME_FORMAT
+    if output_file_path_template is None:
+        # Required config file parameters (old way)
+        try:
+            output_dir_template = conf["OUTPUT_DIR"]
+        except KeyError as exc:
+            raise KeyError(
+                "Configuration must have either OUTPUT_FILE_PATH or OUTPUT_DIR"
+            ) from exc
+        file_name_format = conf.get("FILE_NAME_FORMAT", "PREFIX.YYYYMMDDhhmmss.EXT")
+    else:
+        # New unified approach
+        output_dir_template = None  # Not used with OUTPUT_FILE_PATH
+        file_name_format = None  # Not used with OUTPUT_FILE_PATH
+
     try:
-        output_dir = conf["OUTPUT_DIR"]
-    except KeyError as exc:
-        raise KeyError(
-            "No key named OUTPUT_DIR in the yaml configuration file"
-        ) from exc
-    try:
-        input_file_path = conf["INPUT_FILE_PATH"]
+        input_file_config = conf["INPUT_FILE_PATH"]
     except KeyError as exc:
         raise KeyError(
             "No key named INPUT_FILE_PATH in the yaml configuration file"
@@ -446,10 +655,8 @@ def main() -> None:
     # Optional config file parameters
     cdl_type = conf.get("CDL_TYPE", "CR1000X")
     split_interval = conf.get("SPLIT_INTERVAL", "HOURLY")
-    file_name_format = conf.get("FILE_NAME_FORMAT", "PREFIX.YYYYMMDDhhmmss.EXT")
 
-    # If RENAME_PREFIX or RENAME_EXTENSION are included in the
-    # conf file, then rename the prefix and extension
+    # Legacy parameters (deprecated)
     rename_prefix = conf.get("RENAME_PREFIX")
     rename_extension = conf.get("RENAME_EXTENSION")
 
@@ -457,16 +664,40 @@ def main() -> None:
     global CACHE_PATH
     CACHE_PATH = conf.get("CACHE_PATH", "")
 
-    for infile in input_file_path:
-        process_file(
-            infile,
-            output_dir,
-            cdl_type=cdl_type,
-            split_interval=split_interval,
-            file_name_format=file_name_format,
-            rename_prefix=rename_prefix,
-            rename_extension=rename_extension,
-        )
+    # Resolve input files (supports patterns and captured groups)
+    input_files = resolve_input_files(input_file_config)
+
+    # Process each matched file
+    for infile, captured_groups in input_files:
+        if output_file_path_template is not None:
+            # New unified approach: substitute captured groups into path
+            output_file_path = substitute_output_dir(
+                output_file_path_template, captured_groups
+            )
+
+            process_file(
+                infile,
+                output_file_path=output_file_path,
+                cdl_type=cdl_type,
+                split_interval=split_interval,
+                rename_prefix=rename_prefix,
+                rename_extension=rename_extension,
+                captured_groups=captured_groups,
+            )
+        else:
+            # Backward compatibility: old OUTPUT_DIR + FILE_NAME_FORMAT
+            output_dir = substitute_output_dir(output_dir_template, captured_groups)
+
+            process_file(
+                infile,
+                output_dir,
+                cdl_type=cdl_type,
+                split_interval=split_interval,
+                file_name_format=file_name_format,
+                rename_prefix=rename_prefix,
+                rename_extension=rename_extension,
+                captured_groups=captured_groups,
+            )
 
 
 if __name__ == "__main__":
