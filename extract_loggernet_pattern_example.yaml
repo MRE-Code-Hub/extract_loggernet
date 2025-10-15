@@ -19,6 +19,17 @@
 #
 # Named groups use the syntax: (?P<name>...)
 #
+# REGEX FLAGS:
+# Add (?i) at the start of the pattern for case-insensitive matching:
+#   pattern: '(?i)^(?P<site>\w+)/(?P<logger>\w+)/.*\.dat$'
+# This will match .dat, .DAT, .Dat, etc.
+#
+# Other useful flags:
+#   (?m) = multiline mode (^ and $ match line boundaries)
+#   (?s) = dotall mode (. matches newlines)
+#   (?x) = verbose mode (allows whitespace and comments in pattern)
+#   Combine flags: (?im) for case-insensitive multiline
+#
 # RECOMMENDED: Use patterns relative to search_root to avoid redundancy
 #
 # In this example:
@@ -39,6 +50,11 @@
 INPUT_FILE_PATH:
   pattern: '^(?P<site>\w+)/(?P<logger>\w+)/.*\.dat$'
   search_root: /data
+
+# Example: Case-insensitive pattern (matches .dat, .DAT, .Dat, etc.)
+# INPUT_FILE_PATH:
+#   pattern: '(?i)^(?P<site>\w+)/(?P<logger>\w+)/.*\.dat$'
+#   search_root: /data
 
 # Alternative: Absolute path pattern (for backward compatibility)
 # INPUT_FILE_PATH:

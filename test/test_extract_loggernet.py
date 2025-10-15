@@ -720,3 +720,32 @@ class TestPatternMatching:
             template, timestamp, prefix="data", extension="dat"
         )
         assert result == "/output/2024/DATA.csv"
+
+    def test_pattern_case_insensitive(self, tmp_path: Any) -> None:
+        """Test that case-insensitive patterns work with (?i) flag."""
+        # Create test directory structure with mixed case extensions
+        test_dir = tmp_path / "data"
+        site_dir = test_dir / "site1"
+        site_dir.mkdir(parents=True)
+
+        # Create files with different case extensions (use different names)
+        (site_dir / "logger1.dat").write_text("test")
+        (site_dir / "logger2.DAT").write_text("test")
+        (site_dir / "logger3.Dat").write_text("test")
+        (site_dir / "logger4.txt").write_text("test")  # Should not match
+
+        # Test case-insensitive pattern with (?i) flag
+        input_config = {
+            "pattern": r"(?i)^site1/.*\.dat$",
+            "search_root": str(test_dir),
+        }
+
+        results = extract_loggernet.resolve_input_files(input_config)
+
+        # Should match all three .dat files regardless of case
+        assert len(results) == 3
+        matched_files = [os.path.basename(path) for path, _ in results]
+        assert "logger1.dat" in matched_files
+        assert "logger2.DAT" in matched_files
+        assert "logger3.Dat" in matched_files
+        assert "logger4.txt" not in matched_files

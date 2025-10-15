@@ -32,6 +32,9 @@
 #        For example, if the pattern matches /data/site1/CR1000/file.dat,
 #        then {site} = "site1" and {logger} = "CR1000" can be used in OUTPUT_DIR.
 #
+#        Regex flags: Add (?i) at start for case-insensitive matching:
+#          pattern: '(?i)^/data/.*\.dat$'  # Matches .dat, .DAT, .Dat, etc.
+#
 INPUT_FILE_PATH: /Users/fred/extract_loggernet/test/test_files/CR23/3-GndRadData.dat
 
 # OUTPUT_DIR
