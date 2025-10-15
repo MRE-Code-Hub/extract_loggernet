@@ -169,6 +169,9 @@ def write_new_hourly_file(
         'MM' with the month, 'DD' with the day, 'hh' with the hour,
         'mm' with the minute, and 'ss' with the second of the given
         timestamp parameter. (e.g. 'PREFIX.YYYYMMDDhhmmss.EXT')
+        You can also include directory separators to create nested
+        directory structures (e.g. 'YYYY/MM/PREFIX.YYYYMMDDhhmmss.EXT'
+        will create year and month subdirectories).
     prefix : str
         The string to replace 'PREFIX' in the given file_name_format string.
     extension : str
@@ -196,6 +199,13 @@ def write_new_hourly_file(
     # Check if there is a file with this filename already.
     # If there is, then append this data to that file.
     filepath = os.path.join(output_dir, filename)
+
+    # Create parent directories if they don't exist
+    # (e.g., when FILE_NAME_FORMAT contains directory separators like YYYY/MM/)
+    parent_dir = os.path.dirname(filepath)
+    if parent_dir:  # Only create if there's a parent directory
+        os.makedirs(parent_dir, exist_ok=True)
+
     if os.path.exists(filepath):
         with open(filepath, "a") as temp:
             temp.write(data)
@@ -303,6 +313,9 @@ def process_file(
         'MM' with the month, 'DD' with the day, 'hh' with the hour,
         'mm' with the minute, and 'ss' with the second of the given
         timestamp parameter. (e.g. 'PREFIX.YYYYMMDDhhmmss.EXT')
+        You can also include directory separators to create nested
+        directory structures (e.g. 'YYYY/MM/PREFIX.YYYYMMDDhhmmss.EXT'
+        will create year and month subdirectories).
     rename_prefix : str
         If set, this will replace original file's prefix
         when naming the extracted output files.

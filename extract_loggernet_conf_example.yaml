@@ -4,16 +4,14 @@
 #
 #
 
-
 ##############################################################################
 # REQUIRED PARAMETERS
-#################################################################################
+##############################################################################
 #
 # INPUT_FILE_PATH
 #     The absolute path of the logger file to extract data from.
 #
 INPUT_FILE_PATH: /Users/fred/extract_loggernet/test_files/CR23/3-GndRadData.dat
-
 
 # OUTPUT_DIR
 #     The directory to place extracted hourly files in.
@@ -21,10 +19,9 @@ INPUT_FILE_PATH: /Users/fred/extract_loggernet/test_files/CR23/3-GndRadData.dat
 
 OUTPUT_DIR: /Users/fred/extract_loggernet/out
 
-
-#################################################################################
+##############################################################################
 # OPTIONAL PARAMETERS
-#################################################################################
+##############################################################################
 #
 # CDL_TYPE
 #     The type of Campbell Data Logger. Default is CR1000X.
@@ -37,12 +34,10 @@ OUTPUT_DIR: /Users/fred/extract_loggernet/out
 #
 CDL_TYPE: CR23
 
-
 # SPLIT_INTERVAL
 #     Specify DAILY to extract daily files instead of the default hourly.
 #
 SPLIT_INTERVAL: HOURLY
-
 
 # FILE_NAME_FORMAT
 #     A string specifying the format for naming the output files.
@@ -53,15 +48,19 @@ SPLIT_INTERVAL: HOURLY
 #     'mm' with the minute, and 'ss' with the second of the given
 #     timestamp parameter. (e.g. 'PREFIX.YYYYMMDDhhmmss.EXT')
 #
+#     You can also include directory separators to create nested
+#     directory structures. For example:
+#         'YYYY/MM/PREFIX.YYYYMMDDhhmmss.EXT'
+#     will organize files into year/month subdirectories like:
+#         output_dir/2025/10/my_file.20251015120000.csv
+#
 FILE_NAME_FORMAT: PREFIX.YYYYMMDDhhmmss.EXT
-
 
 # RENAME_PREFIX
 #     If set, this will replace original file's prefix
 #     when naming the extracted output files.
 #
 RENAME_PREFIX: my_file_name
-
 
 # RENAME_EXTENSION
 #     If set, this will replace the original input file's extension when

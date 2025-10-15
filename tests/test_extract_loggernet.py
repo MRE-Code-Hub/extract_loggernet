@@ -18,6 +18,9 @@ from extract_loggernet import extract_loggernet
 # of the extract_loggernet package
 os.chdir(os.path.dirname(extract_loggernet.__file__))
 
+# Initialize CACHE_PATH global variable for tests
+extract_loggernet.CACHE_PATH = ""
+
 
 def test_correct_dir() -> None:
     """
@@ -42,7 +45,7 @@ class TestGroup:
     # This way we can remove redundancy by running
     # the extract loggernet script once for each file,
     # rather than once per test.
-    @pytest.fixture(  # type: ignore[misc]
+    @pytest.fixture(
         scope="class",
         params=[
             # (input_file_path, cdl_type)
@@ -66,29 +69,29 @@ class TestGroup:
     def parameters(self, request: Any) -> Any:
         return request.param
 
-    @pytest.fixture(scope="class")  # type: ignore[misc]
+    @pytest.fixture(scope="class")
     def input_file(self, parameters: Tuple[str, str]) -> str:
         # just the filename
         return os.path.split(parameters[0])[1]
 
-    @pytest.fixture(scope="class")  # type: ignore[misc]
+    @pytest.fixture(scope="class")
     def input_path(self, parameters: Tuple[str, str]) -> str:
         # just the path
         return os.path.split(parameters[0])[0]
 
-    @pytest.fixture(scope="class")  # type: ignore[misc]
+    @pytest.fixture(scope="class")
     def cdl_type(self, parameters: Tuple[str, str]) -> str:
         return parameters[1]
 
-    @pytest.fixture(scope="class")  # type: ignore[misc]
+    @pytest.fixture(scope="class")
     def output_dir(self, input_path: str) -> str:
         return os.path.join(input_path, "out")
 
-    @pytest.fixture(scope="class")  # type: ignore[misc]
+    @pytest.fixture(scope="class")
     def expected_dir(self, input_path: str, input_file: str) -> str:
         return os.path.join(input_path, "expected", input_file)
 
-    @pytest.fixture(scope="class")  # type: ignore[misc]
+    @pytest.fixture(scope="class")
     def setup(
         self,
         input_path: str,
@@ -142,9 +145,14 @@ class TestGroup:
         out_filenames = sorted(
             [f for f in os.listdir(output_dir) if f.endswith(".dat")]
         )
-        expected_filenames = sorted(
-            [f for f in os.listdir(expected_dir) if f.endswith(".dat")]
-        )
+        # Handle cases where expected directory doesn't exist
+        # (e.g., first file that just initializes the system)
+        if os.path.exists(expected_dir):
+            expected_filenames = sorted(
+                [f for f in os.listdir(expected_dir) if f.endswith(".dat")]
+            )
+        else:
+            expected_filenames = []
 
         # return value and run test
         yield (out_filenames, expected_filenames)
@@ -177,3 +185,137 @@ class TestGroup:
                 print(f"{name} is not the same")
                 assert False
         assert True
+
+
+class TestDirectoryStructure:
+    """
+    Tests that FILE_NAME_FORMAT can create nested directory structures
+    using date components like YYYY/MM in the path.
+    """
+
+    def test_nested_directory_creation(self) -> None:
+        """
+        Test that files are created in nested YYYY/MM directory structure
+        when FILE_NAME_FORMAT includes directory separators.
+        """
+        import tempfile
+        import shutil
+
+        # Create a temporary directory for this test
+        test_dir = tempfile.mkdtemp()
+        try:
+            # Use the first CR3000 test file
+            input_file_path = "./test_files/CR3000/1-CR3000_Table213.dat"
+            input_path, original_filename = os.path.split(input_file_path)
+
+            # Copy the test file to temp directory to avoid affecting other tests
+            temp_input = os.path.join(test_dir, "test_input.dat")
+            shutil.copy(input_file_path, temp_input)
+
+            output_dir = os.path.join(test_dir, "out")
+            os.makedirs(output_dir, exist_ok=True)
+
+            # Run process_file with nested directory format
+            extract_loggernet.process_file(
+                input_file_path=temp_input,
+                output_dir=output_dir,
+                cdl_type="CR3000",
+                split_interval="HOURLY",
+                file_name_format="YYYY/MM/PREFIX.YYYYMMDDhhmmss.EXT",
+                rename_prefix="test_file",
+                rename_extension="dat",
+            )
+
+            # Verify that YYYY/MM directories were created
+            # The test file has data from 2009-11-30 (November only)
+            year_2009_dir = os.path.join(output_dir, "2009")
+            assert os.path.exists(
+                year_2009_dir
+            ), f"Year directory {year_2009_dir} was not created"
+            assert os.path.isdir(year_2009_dir), f"{year_2009_dir} is not a directory"
+
+            month_11_dir = os.path.join(year_2009_dir, "11")
+            assert os.path.exists(
+                month_11_dir
+            ), f"Month directory {month_11_dir} was not created"
+            assert os.path.isdir(month_11_dir), f"{month_11_dir} is not a directory"
+
+            # Verify that files were created in the correct directory
+            files_in_nov = os.listdir(month_11_dir)
+
+            assert len(files_in_nov) > 0, "No files created in November directory"
+
+            # Check that filenames follow the expected pattern
+            for filename in files_in_nov:
+                assert filename.startswith(
+                    "test_file.200911"
+                ), f"File {filename} doesn't match expected pattern"
+                assert filename.endswith(
+                    ".dat"
+                ), f"File {filename} doesn't have .dat extension"
+
+            print(f"✓ Created {len(files_in_nov)} files in 2009/11/")
+
+        finally:
+            # Cleanup: remove temporary directory
+            if os.path.exists(test_dir):
+                shutil.rmtree(test_dir)
+
+    def test_deep_nested_directory_creation(self) -> None:
+        """
+        Test that files can be created in deeply nested directory structures
+        like YYYY/MM/DD.
+        """
+        import tempfile
+        import shutil
+
+        test_dir = tempfile.mkdtemp()
+        try:
+            # Use the first CR3000 test file
+            input_file_path = "./test_files/CR3000/1-CR3000_Table213.dat"
+
+            # Copy the test file to temp directory
+            temp_input = os.path.join(test_dir, "test_input.dat")
+            shutil.copy(input_file_path, temp_input)
+
+            output_dir = os.path.join(test_dir, "out")
+            os.makedirs(output_dir, exist_ok=True)
+
+            # Run process_file with deeply nested directory format
+            extract_loggernet.process_file(
+                input_file_path=temp_input,
+                output_dir=output_dir,
+                cdl_type="CR3000",
+                split_interval="HOURLY",
+                file_name_format="YYYY/MM/DD/PREFIX_hh.EXT",
+                rename_prefix="data",
+                rename_extension="csv",
+            )
+
+            # Verify that YYYY/MM/DD directories were created
+            # The test file has data from 2009-11-30
+            deep_path = os.path.join(output_dir, "2009", "11", "30")
+            assert os.path.exists(
+                deep_path
+            ), f"Deep directory structure {deep_path} was not created"
+            assert os.path.isdir(deep_path), f"{deep_path} is not a directory"
+
+            # Verify files were created
+            files_in_dir = os.listdir(deep_path)
+            assert len(files_in_dir) > 0, "No files created in deeply nested directory"
+
+            # Check filename pattern
+            for filename in files_in_dir:
+                assert filename.startswith(
+                    "data_"
+                ), f"File {filename} doesn't start with 'data_'"
+                assert filename.endswith(
+                    ".csv"
+                ), f"File {filename} doesn't have .csv extension"
+
+            print(f"✓ Created {len(files_in_dir)} files in deeply nested 2009/11/30/")
+
+        finally:
+            # Cleanup
+            if os.path.exists(test_dir):
+                shutil.rmtree(test_dir)
