@@ -319,3 +319,72 @@ class TestDirectoryStructure:
             # Cleanup
             if os.path.exists(test_dir):
                 shutil.rmtree(test_dir)
+
+    def test_repeated_template_parts(self) -> None:
+        """
+        Test that template parts (YYYY, MM, etc.) can be repeated in both
+        the directory path and filename, e.g., YYYY/MM/PREFIX.YYYYMMDDhhmmss.EXT
+        """
+        import tempfile
+        import shutil
+
+        test_dir = tempfile.mkdtemp()
+        try:
+            input_file_path = "./test_files/CR3000/1-CR3000_Table213.dat"
+            temp_input = os.path.join(test_dir, "test_input.dat")
+            shutil.copy(input_file_path, temp_input)
+
+            output_dir = os.path.join(test_dir, "out")
+            os.makedirs(output_dir, exist_ok=True)
+
+            # Use format with YYYY and MM repeated in both path and filename
+            extract_loggernet.process_file(
+                input_file_path=temp_input,
+                output_dir=output_dir,
+                cdl_type="CR3000",
+                split_interval="HOURLY",
+                file_name_format="YYYY/MM/PREFIX.YYYYMMDDhhmmss.EXT",
+                rename_prefix="data",
+                rename_extension="dat",
+            )
+
+            # Verify directory structure was created
+            year_dir = os.path.join(output_dir, "2009")
+            month_dir = os.path.join(year_dir, "11")
+            assert os.path.exists(month_dir), f"Directory {month_dir} was not created"
+
+            # Check files in the directory
+            files = os.listdir(month_dir)
+            assert len(files) > 0, "No files created"
+
+            # Verify that filenames also contain YYYY and MM
+            for filename in files:
+                # File should start with "data.200911" (prefix + YYYY + MM)
+                assert filename.startswith(
+                    "data.200911"
+                ), f"File {filename} doesn't have repeated YYYY/MM in name"
+                assert filename.endswith(
+                    ".dat"
+                ), f"File {filename} doesn't have .dat extension"
+                # Verify full pattern: data.YYYYMMDDhhmmss.dat
+                # Should be like: data.20091130220000.dat
+                parts = filename.split(".")
+                assert (
+                    len(parts) == 3
+                ), f"Filename {filename} doesn't have expected structure"
+                assert parts[0] == "data", "Prefix not correct"
+                assert (
+                    len(parts[1]) == 14
+                ), f"Timestamp part {parts[1]} should be 14 chars (YYYYMMDDhhmmss)"
+                assert parts[1].startswith(
+                    "200911"
+                ), f"Timestamp {parts[1]} should start with 200911 (YYYYMM)"
+
+            print(
+                f"✓ Successfully created files with repeated template parts: "
+                f"{len(files)} files in 2009/11/ with YYYY/MM in filenames"
+            )
+
+        finally:
+            if os.path.exists(test_dir):
+                shutil.rmtree(test_dir)
