@@ -666,69 +666,83 @@ def process_file(
 
     print(f"running extract loggernet on {input_file_path}")
 
-    with open(input_file_path, "r") as file:
+    try:
+        with open(input_file_path, "r", encoding="utf-8") as file:
 
-        header_info = extract_header_info(file, cdl_type)
-        temp_data_lines = ""
-        previous_timestamp = None
-        current_file_position = parse_file_handle(input_path, input_file)
+            header_info = extract_header_info(file, cdl_type)
+            temp_data_lines = ""
+            previous_timestamp = None
+            current_file_position = parse_file_handle(input_path, input_file)
 
-        file.seek(current_file_position)
+            file.seek(current_file_position)
 
-        while True:
-            line = file.readline()
-            if not line:
-                # If we haven't crossed an hour boundary
-                # before reaching the end of the file,
-                # then save any leftover data anyway
-                # and append to the file with the rest
-                # of the data later.
-                if previous_timestamp:
-                    write_new_hourly_file(
-                        output_file_path,
-                        prefix,
-                        extension,
-                        header_info,
-                        temp_data_lines,
-                        previous_timestamp,
-                        captured_groups,
-                    )
-                    set_file_handle(input_path, input_file, current_file_position)
-                # print("end of file")
-                break
+            while True:
+                line = file.readline()
+                if not line:
+                    # If we haven't crossed an hour boundary
+                    # before reaching the end of the file,
+                    # then save any leftover data anyway
+                    # and append to the file with the rest
+                    # of the data later.
+                    if previous_timestamp:
+                        write_new_hourly_file(
+                            output_file_path,
+                            prefix,
+                            extension,
+                            header_info,
+                            temp_data_lines,
+                            previous_timestamp,
+                            captured_groups,
+                        )
+                        set_file_handle(input_path, input_file, current_file_position)
+                    # print("end of file")
+                    break
 
-            t = extract_time(line, cdl_type)
-            if t:
-                # print(line)
-                # Check for changes in hour and
-                # split data on the hour.
-                # (Detect changes in day and
-                # split on the day if specified).
-                current_timestamp = t.replace(minute=0, second=0, microsecond=0)
-                if split_interval == "DAILY":
-                    current_timestamp = current_timestamp.replace(hour=0)
-                if previous_timestamp and current_timestamp > previous_timestamp:
-                    # print()
-                    # print('hour break')
-                    # print(previous_timestamp)
-                    # print(t.replace(minute=0, second=0, microsecond=0))
-                    # print()
-                    write_new_hourly_file(
-                        output_file_path,
-                        prefix,
-                        extension,
-                        header_info,
-                        temp_data_lines,
-                        previous_timestamp,
-                        captured_groups,
-                    )
-                    set_file_handle(input_path, input_file, current_file_position)
-                    temp_data_lines = ""
+                t = extract_time(line, cdl_type)
+                if t:
+                    # print(line)
+                    # Check for changes in hour and
+                    # split data on the hour.
+                    # (Detect changes in day and
+                    # split on the day if specified).
+                    current_timestamp = t.replace(minute=0, second=0, microsecond=0)
+                    if split_interval == "DAILY":
+                        current_timestamp = current_timestamp.replace(hour=0)
+                    if previous_timestamp and current_timestamp > previous_timestamp:
+                        # print()
+                        # print('hour break')
+                        # print(previous_timestamp)
+                        # print(t.replace(minute=0, second=0, microsecond=0))
+                        # print()
+                        write_new_hourly_file(
+                            output_file_path,
+                            prefix,
+                            extension,
+                            header_info,
+                            temp_data_lines,
+                            previous_timestamp,
+                            captured_groups,
+                        )
+                        set_file_handle(input_path, input_file, current_file_position)
+                        temp_data_lines = ""
 
-                previous_timestamp = current_timestamp
-                temp_data_lines += line
-            # update the file position
-            current_file_position = file.tell()
+                    previous_timestamp = current_timestamp
+                    temp_data_lines += line
+                # update the file position
+                current_file_position = file.tell()
+
+    except UnicodeDecodeError as e:
+        print(
+            f"ERROR: File '{input_file_path}' contains invalid UTF-8 encoding "
+            f"at position {e.start}. File may be corrupted. Skipping this file."
+        )
+        return
+    except OSError as e:
+        print(
+            f"ERROR: Failed to read file '{input_file_path}': {e}. "
+            f"Skipping this file."
+        )
+        return
 
 
 def main() -> None:
@@ -798,35 +812,42 @@ def main() -> None:
 
     # Process each matched file
     for infile, captured_groups in input_files:
-        if output_file_path_template is not None:
-            # New unified approach: substitute captured groups into path
-            output_file_path = substitute_output_dir(
-                output_file_path_template, captured_groups
-            )
+        try:
+            if output_file_path_template is not None:
+                # New unified approach: substitute captured groups into path
+                output_file_path = substitute_output_dir(
+                    output_file_path_template, captured_groups
+                )
 
-            process_file(
-                infile,
-                output_file_path=output_file_path,
-                cdl_type=cdl_type,
-                split_interval=split_interval,
-                rename_prefix=rename_prefix,
-                rename_extension=rename_extension,
-                captured_groups=captured_groups,
-            )
-        else:
-            # Backward compatibility: old OUTPUT_DIR + FILE_NAME_FORMAT
-            output_dir = substitute_output_dir(output_dir_template, captured_groups)
+                process_file(
+                    infile,
+                    output_file_path=output_file_path,
+                    cdl_type=cdl_type,
+                    split_interval=split_interval,
+                    rename_prefix=rename_prefix,
+                    rename_extension=rename_extension,
+                    captured_groups=captured_groups,
+                )
+            else:
+                # Backward compatibility: old OUTPUT_DIR + FILE_NAME_FORMAT
+                output_dir = substitute_output_dir(output_dir_template, captured_groups)
 
-            process_file(
-                infile,
-                output_dir,
-                cdl_type=cdl_type,
-                split_interval=split_interval,
-                file_name_format=file_name_format,
-                rename_prefix=rename_prefix,
-                rename_extension=rename_extension,
-                captured_groups=captured_groups,
+                process_file(
+                    infile,
+                    output_dir,
+                    cdl_type=cdl_type,
+                    split_interval=split_interval,
+                    file_name_format=file_name_format,
+                    rename_prefix=rename_prefix,
+                    rename_extension=rename_extension,
+                    captured_groups=captured_groups,
+                )
+        except Exception as e:
+            print(
+                f"ERROR: Unexpected error processing file '{infile}': {e}. "
+                f"Skipping this file and continuing with next file."
             )
+            continue
 
 
 if __name__ == "__main__":

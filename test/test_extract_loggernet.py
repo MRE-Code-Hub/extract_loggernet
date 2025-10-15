@@ -782,3 +782,32 @@ class TestPatternMatching:
         # Verify the specific order
         basenames = [os.path.basename(p) for p in file_paths]
         assert basenames == ["alpha.dat", "bravo.dat", "charlie.dat", "zebra.dat"]
+
+    def test_corrupted_file_handling(self, tmp_path: Any, capsys: Any) -> None:
+        """Test that corrupted files with invalid UTF-8 are handled gracefully."""
+        # Create a file with invalid UTF-8 bytes
+        test_file = tmp_path / "corrupted.dat"
+
+        # Write binary data with invalid UTF-8 sequence
+        with open(test_file, "wb") as f:
+            f.write(b"Some valid text\n")
+            f.write(b"\x91\x92\x93")  # Invalid UTF-8 bytes
+            f.write(b"More text\n")
+
+        output_dir = tmp_path / "output"
+        output_dir.mkdir()
+
+        # Try to process the corrupted file - should not raise exception
+        extract_loggernet.process_file(
+            str(test_file),
+            str(output_dir),
+            cdl_type="CR1000X",
+            split_interval="HOURLY",
+        )
+
+        # Verify error message was printed
+        captured = capsys.readouterr()
+        assert "ERROR" in captured.out
+        assert "invalid UTF-8 encoding" in captured.out
+        assert "corrupted.dat" in captured.out
+        assert "Skipping this file" in captured.out
