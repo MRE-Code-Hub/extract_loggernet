@@ -108,3 +108,22 @@ FILE_NAME_FORMAT: PREFIX.YYYYMMDDhhmmss.EXT
 #     Example: 'PREFIX.YYYYMMDDhhmmss.csv'
 #
 # RENAME_EXTENSION: csv
+
+# CACHE_PATH
+#     Optional prefix path for the cache directory location.
+#     The script tracks file positions using a cache file stored in
+#     .extract_loggernet_cache/ relative to the input file location.
+#
+#     By default (empty string), the cache is created next to the input file:
+#       Input file: /data/logger.dat
+#       Cache file: /data/.extract_loggernet_cache/logger_file_position.yaml
+#
+#     If CACHE_PATH is set, it will be prepended to the input file path:
+#       CACHE_PATH: /var/cache
+#       Input file: /data/logger.dat
+#       Cache file: /var/cache/data/.extract_loggernet_cache/logger_file_position.yaml
+#
+#     This is useful if you don't have write permissions in the input directory
+#     or want to centralize cache files.
+#
+# CACHE_PATH:

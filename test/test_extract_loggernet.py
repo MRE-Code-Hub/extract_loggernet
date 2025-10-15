@@ -676,3 +676,47 @@ class TestPatternMatching:
         finally:
             if os.path.exists(test_base_dir):
                 shutil.rmtree(test_base_dir)
+
+    def test_placeholder_functions_lower(self) -> None:
+        """Test lowercase function on placeholders."""
+        template = "/output/{site|lower}/{logger|upper}/data"
+        groups = {"site": "SiteA", "logger": "cr1000"}
+
+        result = extract_loggernet.substitute_output_dir(template, groups)
+        assert result == "/output/sitea/CR1000/data"
+
+    def test_placeholder_functions_title(self) -> None:
+        """Test title case function on placeholders."""
+        template = "/output/{site|title}"
+        groups = {"site": "my_site"}
+
+        result = extract_loggernet.substitute_output_dir(template, groups)
+        assert result == "/output/My_Site"
+
+    def test_placeholder_functions_replace(self) -> None:
+        """Test replace function on placeholders."""
+        template = "/output/{site|replace:_:-}"
+        groups = {"site": "my_site_name"}
+
+        result = extract_loggernet.substitute_output_dir(template, groups)
+        assert result == "/output/my-site-name"
+
+    def test_placeholder_functions_chained(self) -> None:
+        """Test chaining multiple functions."""
+        template = "/output/{site|replace:_:-|upper}"
+        groups = {"site": "my_site"}
+
+        result = extract_loggernet.substitute_output_dir(template, groups)
+        assert result == "/output/MY-SITE"
+
+    def test_placeholder_functions_on_timestamps(self) -> None:
+        """Test that functions work on timestamp placeholders."""
+        from datetime import datetime
+
+        template = "/output/{YYYY|lower}/{PREFIX|upper}.csv"
+        timestamp = datetime(2024, 1, 15, 12, 30, 45)
+
+        result = extract_loggernet.substitute_placeholders(
+            template, timestamp, prefix="data", extension="dat"
+        )
+        assert result == "/output/2024/DATA.csv"

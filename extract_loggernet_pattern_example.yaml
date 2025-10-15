@@ -57,6 +57,16 @@ INPUT_FILE_PATH:
 #   - {hh}, {mm}, {ss} = timestamp components (hour, minute, second)
 #   - {PREFIX}, {EXT} = original filename prefix and extension
 #
+# TRANSFORM FUNCTIONS:
+# Apply functions using pipe syntax: {placeholder|function}
+#   - {site|lower} = lowercase
+#   - {logger|upper} = uppercase
+#   - {site|title} = title case (capitalize first letter of each word)
+#   - {site|capitalize} = capitalize first letter only
+#   - {site|replace:_:-} = replace underscores with hyphens
+#
+# Functions can be chained: {site|replace:_:-|upper}
+#
 # This is the preferred approach for new configurations.
 #
 # Examples:
@@ -72,6 +82,12 @@ OUTPUT_FILE_PATH: /output/{site}/{logger}/{site}_{logger}_data.{YYYY}{MM}{DD}{hh
 
 # Option 4: Keep original filename structure
 # OUTPUT_FILE_PATH: /output/{site}/{logger}/{PREFIX}.{YYYY}{MM}{DD}{hh}{mm}{ss}.{EXT}
+
+# Option 5: Normalize names with functions (lowercase directories, uppercase files)
+# OUTPUT_FILE_PATH: /output/{site|lower}/{logger|lower}/{site|upper}_{logger|upper}_DATA.{YYYY}{MM}{DD}{hh}{mm}{ss}.CSV
+
+# Option 6: Replace characters and standardize case
+# OUTPUT_FILE_PATH: /output/{site|replace:_:-|lower}/{logger|upper}/data.{YYYY}{MM}{DD}{hh}{mm}{ss}.csv
 
 ##############################################################################
 # LEGACY CONFIGURATION (For backward compatibility)
@@ -97,6 +113,12 @@ OUTPUT_FILE_PATH: /output/{site}/{logger}/{site}_{logger}_data.{YYYY}{MM}{DD}{hh
 CDL_TYPE: CR1000X
 
 SPLIT_INTERVAL: HOURLY
+# CACHE_PATH
+#     Optional prefix path for the cache directory location.
+#     See extract_loggernet_conf_example.yaml for detailed documentation.
+#
+# CACHE_PATH:
+
 ##############################################################################
 # EXAMPLE WORKFLOW
 ##############################################################################

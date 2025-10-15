@@ -150,16 +150,76 @@ def resolve_input_files(
     )
 
 
+# Define available placeholder functions
+PLACEHOLDER_FUNCTIONS = {
+    "lower": str.lower,
+    "upper": str.upper,
+    "title": str.title,
+    "capitalize": str.capitalize,
+}
+
+
+def apply_placeholder_function(value: str, func_spec: str) -> str:
+    """
+    Apply a function to a placeholder value.
+
+    Parameters
+    ----------
+    value : str
+        The value to transform
+    func_spec : str
+        Function specification, e.g. "lower", "upper", "replace:_:-"
+
+    Returns
+    -------
+    str
+        Transformed value
+
+    Examples
+    --------
+    >>> apply_placeholder_function("SiteA", "lower")
+    'sitea'
+    >>> apply_placeholder_function("site-b", "upper")
+    'SITE-B'
+    >>> apply_placeholder_function("my_site", "title")
+    'My_Site'
+    """
+    # Check for functions with arguments (e.g., "replace:_:-")
+    if ":" in func_spec:
+        func_name, args_str = func_spec.split(":", 1)
+        args = args_str.split(":")
+
+        if func_name == "replace":
+            if len(args) >= 2:
+                old, new = args[0], args[1]
+                return value.replace(old, new)
+            else:
+                raise ValueError(
+                    f"replace function requires 2 arguments, got {len(args)}"
+                )
+        else:
+            raise ValueError(f"Unknown function with arguments: {func_name}")
+
+    # Simple function (no arguments)
+    if func_spec in PLACEHOLDER_FUNCTIONS:
+        return PLACEHOLDER_FUNCTIONS[func_spec](value)
+
+    raise ValueError(f"Unknown placeholder function: {func_spec}")
+
+
 def substitute_output_dir(
     output_dir_template: str, captured_groups: Dict[str, str]
 ) -> str:
     """
     Substitute captured group values into OUTPUT_DIR template.
 
+    Supports functions via pipe syntax: {key|function} or {key|func1|func2}
+
     Parameters
     ----------
     output_dir_template : str
         Output directory path with placeholders like {site}, {logger}, etc.
+        Can include functions: {site|lower}, {logger|upper}, etc.
     captured_groups : dict
         Dictionary of captured group names and their values
 
@@ -172,11 +232,36 @@ def substitute_output_dir(
     --------
     >>> substitute_output_dir("/out/{site}/{logger}", {"site": "A", "logger": "B"})
     '/out/A/B'
+    >>> substitute_output_dir("/out/{site|lower}", {"site": "SiteA"})
+    '/out/sitea'
+    >>> substitute_output_dir("/out/{site|lower}/{logger|upper}",
+    ...                       {"site": "SiteA", "logger": "cr1000"})
+    '/out/sitea/CR1000'
     """
     result = output_dir_template
-    for key, value in captured_groups.items():
-        placeholder = "{" + key + "}"
-        result = result.replace(placeholder, value)
+
+    # Find all placeholders with optional functions: {key} or {key|func|func2}
+    pattern = r"\{([^}|]+)(?:\|([^}]+))?\}"
+
+    def replacer(match: Any) -> str:
+        key = match.group(1)
+        functions = match.group(2)  # Could be None or "lower" or "lower|upper"
+
+        if key not in captured_groups:
+            # Not a captured group, leave it as-is for other substitution
+            return str(match.group(0))
+
+        value = captured_groups[key]
+
+        # Apply functions if specified
+        if functions:
+            for func_spec in functions.split("|"):
+                func_spec = func_spec.strip()
+                value = apply_placeholder_function(value, func_spec)
+
+        return value
+
+    result = re.sub(pattern, replacer, result)
     return result
 
 
@@ -284,6 +369,7 @@ def substitute_placeholders(
     Substitute all placeholders in a template string.
 
     Supports both new {bracket} syntax and legacy BARE syntax for compatibility.
+    Functions can be applied using pipe syntax: {YYYY|lower}, {PREFIX|upper}
 
     Parameters
     ----------
@@ -308,6 +394,9 @@ def substitute_placeholders(
     New syntax (recommended):
         '{site}/{logger}/{YYYY}/{MM}/data.{YYYY}{MM}{DD}{hh}{mm}{ss}.csv'
 
+    With functions:
+        '{site|lower}/{logger|upper}/{YYYY}/data.{PREFIX|lower}.csv'
+
     Legacy syntax (still supported):
         'YYYY/MM/PREFIX.YYYYMMDDhhmmss.EXT'
 
@@ -316,7 +405,7 @@ def substitute_placeholders(
     """
     result = template
 
-    # First, substitute captured groups
+    # First, substitute captured groups (which already supports functions)
     if captured_groups:
         result = substitute_output_dir(result, captured_groups)
 
@@ -324,15 +413,40 @@ def substitute_placeholders(
     parsed_t_stamp = re.split("-|T|:", timestamp.isoformat())
     year, month, day, hour, minute, second = parsed_t_stamp
 
-    # New syntax: {YYYY}, {MM}, etc. (preferred)
-    result = result.replace("{YYYY}", year)
-    result = result.replace("{MM}", month)
-    result = result.replace("{DD}", day)
-    result = result.replace("{hh}", hour)
-    result = result.replace("{mm}", minute)
-    result = result.replace("{ss}", second)
-    result = result.replace("{PREFIX}", prefix)
-    result = result.replace("{EXT}", extension)
+    # Create mapping for bracket syntax with function support
+    bracket_values = {
+        "YYYY": year,
+        "MM": month,
+        "DD": day,
+        "hh": hour,
+        "mm": minute,
+        "ss": second,
+        "PREFIX": prefix,
+        "EXT": extension,
+    }
+
+    # Substitute bracket syntax with optional functions: {YYYY|lower}
+    pattern = r"\{([^}|]+)(?:\|([^}]+))?\}"
+
+    def replacer(match: Any) -> str:
+        key = match.group(1)
+        functions = match.group(2)
+
+        if key not in bracket_values:
+            # Unknown placeholder, leave as-is
+            return str(match.group(0))
+
+        value = bracket_values[key]
+
+        # Apply functions if specified
+        if functions:
+            for func_spec in functions.split("|"):
+                func_spec = func_spec.strip()
+                value = apply_placeholder_function(value, func_spec)
+
+        return value
+
+    result = re.sub(pattern, replacer, result)
 
     # Legacy syntax: YYYY, MM, etc. (for backward compatibility)
     result = re.sub("YYYY", year, result)
