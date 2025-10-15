@@ -544,9 +544,8 @@ def set_file_handle(input_path: str, input_file: str, current_pos: int) -> None:
     prefix = re.split(r"\.|\/", input_file)[-2:][0]
     cache = f"{CACHE_PATH}{input_path}/.extract_loggernet_cache/"
     filehandle = os.path.join(cache, f".{prefix}_file_position.yaml")
-    # make sure there is a .cache/ folder
-    if not os.path.exists(cache):
-        os.mkdir(cache)
+    # make sure there is a .cache/ folder (including any parent directories)
+    os.makedirs(cache, exist_ok=True)
 
     # write the file position
     with open(filehandle, "w") as f:
