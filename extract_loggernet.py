@@ -24,11 +24,15 @@ import argparse
 from datetime import datetime, timedelta
 import re
 import os
+from typing import Any, Optional
 import yaml
 
+# Global variable for cache path
+CACHE_PATH: Optional[str] = None
 
-def read_yaml(path):
-    '''
+
+def read_yaml(path: str) -> Any:
+    """
     Parse yaml file and return dictionary.
 
     Parameters
@@ -40,7 +44,7 @@ def read_yaml(path):
     -------
     dict
         The dictionary representation of yaml file.
-    '''
+    """
     with open(path, "r") as f:
         try:
             return yaml.safe_load(f)
@@ -48,8 +52,8 @@ def read_yaml(path):
             raise e
 
 
-def extract_time(line, cdl_type="CR1000X"):
-    '''
+def extract_time(line: str, cdl_type: str = "CR1000X") -> Optional[datetime]:
+    """
     Extract time from CRXXX (i.e. CR3000 or CR1000)
     or CRXX (i.e. CR23 or CR10) loggernet files
 
@@ -67,21 +71,14 @@ def extract_time(line, cdl_type="CR1000X"):
     -------
     Object
         datetime object representing the parsed timestamp.
-    '''
+    """
     if cdl_type.upper() in ("CR1000X", "CR1000", "CR3000", "CRXXXX"):
         pattern = r"^\"(\d+)-(\d+)-(\d+)\s+(\d+):(\d+):(\d+)"
         date_string = re.match(pattern, line)
         if date_string:
             yr, mo, day, hr, minute, sec = list(map(int, date_string.groups()))
-            return datetime(
-                yr,
-                mo,
-                day,
-                hr,
-                minute,
-                sec
-            )
-        return
+            return datetime(yr, mo, day, hr, minute, sec)
+        return None
 
     if cdl_type.upper() in ("CR23", "CR10", "CRXX"):
         parsed_date = re.match(r"^\d+,(\d+),(\d+),(\d+),", line)
@@ -105,13 +102,13 @@ def extract_time(line, cdl_type="CR1000X"):
             date = datetime(year, 1, 1)
             delta = timedelta(days=yday, hours=hh, minutes=mm)
             return date + delta
-        return
+        return None
 
     raise Exception("Cannot process files for CDL_TYPE: {cdl_type}")
 
 
-def extract_header_info(file, cdl_type="CR1000X"):
-    '''
+def extract_header_info(file: Any, cdl_type: str = "CR1000X") -> str:
+    """
     Returns every line in the file that
     precedes the first line with a timestamp.
 
@@ -136,7 +133,7 @@ def extract_header_info(file, cdl_type="CR1000X"):
     str
         String containing any lines that
         precede the first line with a timestamp.
-    '''
+    """
     file.seek(0)
     header = ""
     for line in file:
@@ -144,18 +141,20 @@ def extract_header_info(file, cdl_type="CR1000X"):
             file.seek(0)
             return header
         header += line
+    file.seek(0)
+    return header
 
 
 def write_new_hourly_file(
-        output_dir,
-        file_name_format,
-        prefix,
-        extension,
-        header,
-        data,
-        timestamp
-        ):
-    '''
+    output_dir: str,
+    file_name_format: str,
+    prefix: str,
+    extension: str,
+    header: str,
+    data: str,
+    timestamp: datetime,
+) -> None:
+    """
     Writes the given interval of data to a separate timestamped file.
     If the file already exists, then append the given data to the file.
 
@@ -181,11 +180,11 @@ def write_new_hourly_file(
         The data to write to the extracted file.
     timestamp : datetime.datetime object
         The datetime timestamp to substitute in to the file_name_format string.
-    '''
+    """
     filename = file_name_format
     filename = re.sub("PREFIX", prefix, filename)
     filename = re.sub("EXT", extension, filename)
-    parsed_t_stamp = re.split('-|T|:', timestamp.isoformat())
+    parsed_t_stamp = re.split("-|T|:", timestamp.isoformat())
     year, month, day, hour, minute, second = parsed_t_stamp
     filename = re.sub("YYYY", year, filename)
     filename = re.sub("MM", month, filename)
@@ -206,8 +205,8 @@ def write_new_hourly_file(
             temp.write(header + data)
 
 
-def set_file_handle(input_path, input_file, current_pos):
-    '''
+def set_file_handle(input_path: str, input_file: str, current_pos: int) -> None:
+    """
     Save the current file handle position to a hidden
     `.{input_file}_file_position.yaml` file within
     a hidden `.extract_loggernet_cache` folder inside
@@ -223,28 +222,22 @@ def set_file_handle(input_path, input_file, current_pos):
         The name of the input file for which to save the file position.
     current_pos : int
         The current position of the file handle. (i.e. file.tell())
-    '''
+    """
     prefix = re.split(r"\.|\/", input_file)[-2:][0]
     cache = f"{CACHE_PATH}{input_path}/.extract_loggernet_cache/"
-    filehandle = os.path.join(
-        cache,
-        f".{prefix}_file_position.yaml"
-    )
+    filehandle = os.path.join(cache, f".{prefix}_file_position.yaml")
     # make sure there is a .cache/ folder
     if not os.path.exists(cache):
         os.mkdir(cache)
 
     # write the file position
     with open(filehandle, "w") as f:
-        data = {
-            "INPUT_FILE": input_file,
-            "FILE_POSITION": current_pos
-        }
+        data = {"INPUT_FILE": input_file, "FILE_POSITION": current_pos}
         yaml.dump(data, f)
 
 
-def parse_file_handle(input_path, input_file):
-    '''
+def parse_file_handle(input_path: str, input_file: str) -> int:
+    """
     Return the file position found in any
     `.extract_loggernet_cache/.{input_file}_file_position.yaml`
     file within the specified input_path for
@@ -263,9 +256,10 @@ def parse_file_handle(input_path, input_file):
     -------
     int
         The file position read. If none is found, this defaults to 0.
-    '''
+    """
     prefix = re.split(r"\.|\/", input_file)[-2:][0]
-    filehandle = f"{CACHE_PATH}{input_path}/.extract_loggernet_cache/.{prefix}_file_position.yaml"
+    cache_dir = f"{CACHE_PATH}{input_path}/.extract_loggernet_cache/"
+    filehandle = os.path.join(cache_dir, f".{prefix}_file_position.yaml")
 
     if os.path.exists(filehandle):
         data = read_yaml(filehandle)
@@ -275,14 +269,15 @@ def parse_file_handle(input_path, input_file):
 
 
 def process_file(
-        input_file_path,
-        output_dir,
-        cdl_type="CR1000X",
-        split_interval="HOURLY",
-        file_name_format="PREFIX.YYYYMMDDhhmmss.EXT",
-        rename_prefix=None,
-        rename_extension=None):
-    '''
+    input_file_path: str,
+    output_dir: str,
+    cdl_type: str = "CR1000X",
+    split_interval: str = "HOURLY",
+    file_name_format: str = "PREFIX.YYYYMMDDhhmmss.EXT",
+    rename_prefix: Optional[str] = None,
+    rename_extension: Optional[str] = None,
+) -> None:
+    """
     Read the input file from the given input_file_path and extract
     each hour of data into a separate timestamped file. Extracted files
     will be saved in the given output_dir with the specified file_name_format.
@@ -314,19 +309,15 @@ def process_file(
     rename_extension : str
         If set, this will replace the original input file's extension when
         naming the extracted output files.
-    '''
+    """
     # split the input directory into head and tail parts
     input_path, input_file = os.path.split(input_file_path)
 
     if not os.path.exists(input_file_path):
-        raise FileNotFoundError(
-            f"Input file path does not exist: '{input_file}'"
-        )
+        raise FileNotFoundError(f"Input file path does not exist: '{input_file}'")
 
     if not os.path.exists(output_dir):
-        raise FileNotFoundError(
-            f"Output directory does not exist: '{output_dir}'"
-        )
+        raise FileNotFoundError(f"Output directory does not exist: '{output_dir}'")
 
     # get file prefix and extension
     prefix, extension = re.split(r"\.|\/", input_file)[-2:]
@@ -360,13 +351,9 @@ def process_file(
                         extension,
                         header_info,
                         temp_data_lines,
-                        previous_timestamp
+                        previous_timestamp,
                     )
-                    set_file_handle(
-                        input_path,
-                        input_file,
-                        current_file_position
-                        )
+                    set_file_handle(input_path, input_file, current_file_position)
                 # print("end of file")
                 break
 
@@ -377,13 +364,10 @@ def process_file(
                 # split data on the hour.
                 # (Detect changes in day and
                 # split on the day if specified).
-                current_timestamp = t.replace(minute=0,
-                                              second=0,
-                                              microsecond=0)
+                current_timestamp = t.replace(minute=0, second=0, microsecond=0)
                 if split_interval == "DAILY":
                     current_timestamp = current_timestamp.replace(hour=0)
-                if (previous_timestamp and
-                        current_timestamp > previous_timestamp):
+                if previous_timestamp and current_timestamp > previous_timestamp:
                     # print()
                     # print('hour break')
                     # print(previous_timestamp)
@@ -396,13 +380,9 @@ def process_file(
                         extension,
                         header_info,
                         temp_data_lines,
-                        previous_timestamp
+                        previous_timestamp,
                     )
-                    set_file_handle(
-                        input_path,
-                        input_file,
-                        current_file_position
-                        )
+                    set_file_handle(input_path, input_file, current_file_position)
                     temp_data_lines = ""
 
                 previous_timestamp = current_timestamp
@@ -411,7 +391,8 @@ def process_file(
             current_file_position = file.tell()
 
 
-if __name__ == "__main__":
+def main() -> None:
+    """Main function for command line execution."""
     parser = argparse.ArgumentParser(
         prog="extract_loggernet",
         description="""The extract_loggernet script is used to
@@ -420,59 +401,60 @@ if __name__ == "__main__":
         This script requires a yaml configuration file containing the
         path to the input file, the path of the output
         directory to put extracted files in,
-        and any other optional parameters."""
+        and any other optional parameters.""",
     )
 
     parser.add_argument(
-        'config_file',
-        help="""Directory to a yaml configuration file"""
+        "config_file", help="""Directory to a yaml configuration file"""
     )
     args = parser.parse_args()
     conf_path = args.config_file
 
     # Read the config file
     if not os.path.exists(conf_path):
-        raise FileNotFoundError(
-            f"""Path does not exist: {conf_path}"""
-        )
+        raise FileNotFoundError(f"""Path does not exist: {conf_path}""")
 
     conf = read_yaml(conf_path)
 
     # Required config file parameters
     try:
-        OUTPUT_DIR = conf["OUTPUT_DIR"]
+        output_dir = conf["OUTPUT_DIR"]
     except KeyError as exc:
         raise KeyError(
             "No key named OUTPUT_DIR in the yaml configuration file"
-            ) from exc
+        ) from exc
     try:
-        INPUT_FILE_PATH = conf["INPUT_FILE_PATH"]
+        input_file_path = conf["INPUT_FILE_PATH"]
     except KeyError as exc:
         raise KeyError(
             "No key named INPUT_FILE_PATH in the yaml configuration file"
-            ) from exc
+        ) from exc
 
     # Optional config file parameters
-    CDL_TYPE = conf.get("CDL_TYPE", "CR1000X")
-    SPLIT_INTERVAL = conf.get("SPLIT_INTERVAL", "HOURLY")
-    FILE_NAME_FORMAT = conf.get(
-        "FILE_NAME_FORMAT",
-        "PREFIX.YYYYMMDDhhmmss.EXT"
-        )
+    cdl_type = conf.get("CDL_TYPE", "CR1000X")
+    split_interval = conf.get("SPLIT_INTERVAL", "HOURLY")
+    file_name_format = conf.get("FILE_NAME_FORMAT", "PREFIX.YYYYMMDDhhmmss.EXT")
 
     # If RENAME_PREFIX or RENAME_EXTENSION are included in the
     # conf file, then rename the prefix and extension
-    RENAME_PREFIX = conf.get("RENAME_PREFIX")
-    RENAME_EXTENSION = conf.get("RENAME_EXTENSION")
-    CACHE_PATH = conf.get("CACHE_PATH")
+    rename_prefix = conf.get("RENAME_PREFIX")
+    rename_extension = conf.get("RENAME_EXTENSION")
 
-    for infile in INPUT_FILE_PATH:
-      process_file(
-        infile,
-        OUTPUT_DIR,
-        cdl_type=CDL_TYPE,
-        split_interval=SPLIT_INTERVAL,
-        file_name_format=FILE_NAME_FORMAT,
-        rename_prefix=RENAME_PREFIX,
-        rename_extension=RENAME_EXTENSION
-      )
+    # Set global cache path
+    global CACHE_PATH
+    CACHE_PATH = conf.get("CACHE_PATH", "")
+
+    for infile in input_file_path:
+        process_file(
+            infile,
+            output_dir,
+            cdl_type=cdl_type,
+            split_interval=split_interval,
+            file_name_format=file_name_format,
+            rename_prefix=rename_prefix,
+            rename_extension=rename_extension,
+        )
+
+
+if __name__ == "__main__":
+    main()

@@ -1,0 +1,106 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "extract-loggernet"
+version = "0.1.0"
+description = "Extract hourly data from Campbell Data Logger files"
+readme = "readme.md"
+license = {text = "MIT"}
+authors = [
+    {name = "PacWave", email = "info@pacwaveenergy.org"},
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
+requires-python = ">=3.9"
+dependencies = [
+    "pyyaml>=6.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4",
+    "pytest-cov>=4.0",
+    "mypy>=1.0",
+    "types-PyYAML>=6.0",
+    "pytest-stub>=1.0",
+]
+test = [
+    "pytest>=7.4",
+]
+typing = [
+    "mypy>=1.0",
+    "types-PyYAML>=6.0",
+]
+
+[project.scripts]
+extract-loggernet = "extract_loggernet:main"
+
+[project.urls]
+Homepage = "https://github.com/mre-code-hub/extract_loggernet"
+Repository = "https://github.com/mre-code-hub/extract_loggernet"
+Issues = "https://github.com/mre-code-hub/extract_loggernet/issues"
+
+[tool.hatch.build.targets.wheel]
+packages = ["extract_loggernet.py"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = [
+    "--strict-markers",
+    "--strict-config",
+    "--verbose",
+]
+
+[tool.coverage.run]
+source = ["."]
+omit = [
+    "tests/*",
+    "test_files/*",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise AssertionError",
+    "raise NotImplementedError",
+]
+
+[tool.mypy]
+python_version = "3.9"
+strict = true
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+disallow_untyped_decorators = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_no_return = true
+warn_unreachable = true
+strict_equality = true
+show_error_codes = true
+
+[[tool.mypy.overrides]]
+module = "tests.*"
+disallow_untyped_defs = false
+disallow_untyped_decorators = false
+warn_return_any = false
+
+[[tool.mypy.overrides]]
+module = "pytest"
+ignore_missing_imports = true

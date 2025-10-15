@@ -1,122 +1,124 @@
-'''
+"""
 This will test that extract_loggernet.py is working correctly.
 This will run through the test_files, and verify that
 extract_loggernet.py is outputting as expected.
 
 Run `pytest` in the terminal to run this test.
 Run `pytest -s` to see extra printed output.
-'''
+"""
 
 import filecmp
 import os
 import re
+from typing import Any, Generator, Tuple
 import pytest
 from extract_loggernet import extract_loggernet
+
 # Change the directory to the top level directory
 # of the extract_loggernet package
 os.chdir(os.path.dirname(extract_loggernet.__file__))
 
 
-def test_correct_dir():
-    '''
+def test_correct_dir() -> None:
+    """
     Verify that code changed the directory to the
     module's top level directory.
-    '''
+    """
     assert os.getcwd() == os.path.dirname(extract_loggernet.__file__)
 
 
 class TestGroup:
-    '''
+    """
     Runs extract_loggernet.py on a consecutive set of tests
     for each type of Campbell Data Logger and verifies that the
     output matches the expected number of files, name of each
     file, and content of each file. The test files are preceded
     by a number, which is removed for each test, to create the
     effect of a single growing loggernet file.
-    '''
+    """
 
     # Rather than use `pytest.mark.parametrize on the
     # TestGroup class, use a class scoped fixture.
     # This way we can remove redundancy by running
     # the extract loggernet script once for each file,
     # rather than once per test.
-    @pytest.fixture(scope="class", params=[
-        # (input_file_path, cdl_type)
-        ('./test_files/CR3000/1-CR3000_Table213.dat', 'CR3000'),
-        ('./test_files/CR3000/2-CR3000_Table213.dat', 'CR3000'),
-        ('./test_files/CR3000/3-CR3000_Table213.dat', 'CR3000'),
-        ('./test_files/CR3000/4-CR3000_Table213.dat', 'CR3000'),
-
-        ('./test_files/CR23/1-GndRadData.dat', 'CR23'),
-        ('./test_files/CR23/2-GndRadData.dat', 'CR23'),
-        ('./test_files/CR23/3-GndRadData.dat', 'CR23'),
-        ('./test_files/CR23/4-GndRadData.dat', 'CR23'),
-        ('./test_files/CR23/5-GndRadData.dat', 'CR23'),
-        ('./test_files/CR23/6-GndRadData.dat', 'CR23'),
-
-        ('./test_files/PWS_002/1-CR1000x_PWS_002_IPconnect_Met.dat', 'CR1000X'),
-        ('./test_files/PWS_002/2-CR1000x_PWS_002_IPconnect_Met.dat', 'CR1000X'),
-        ('./test_files/PWS_002/3-CR1000x_PWS_002_IPconnect_Met.dat', 'CR1000X'),
-        ('./test_files/PWS_002/4-CR1000x_PWS_002_IPconnect_Met.dat', 'CR1000X'),
-
-        # add additional test_files to test here:
-
-    ])
-    def parameters(self, request):
+    @pytest.fixture(  # type: ignore[misc]
+        scope="class",
+        params=[
+            # (input_file_path, cdl_type)
+            ("./test_files/CR3000/1-CR3000_Table213.dat", "CR3000"),
+            ("./test_files/CR3000/2-CR3000_Table213.dat", "CR3000"),
+            ("./test_files/CR3000/3-CR3000_Table213.dat", "CR3000"),
+            ("./test_files/CR3000/4-CR3000_Table213.dat", "CR3000"),
+            ("./test_files/CR23/1-GndRadData.dat", "CR23"),
+            ("./test_files/CR23/2-GndRadData.dat", "CR23"),
+            ("./test_files/CR23/3-GndRadData.dat", "CR23"),
+            ("./test_files/CR23/4-GndRadData.dat", "CR23"),
+            ("./test_files/CR23/5-GndRadData.dat", "CR23"),
+            ("./test_files/CR23/6-GndRadData.dat", "CR23"),
+            ("./test_files/PWS_002/1-CR1000x_PWS_002_IPconnect_Met.dat", "CR1000X"),
+            ("./test_files/PWS_002/2-CR1000x_PWS_002_IPconnect_Met.dat", "CR1000X"),
+            ("./test_files/PWS_002/3-CR1000x_PWS_002_IPconnect_Met.dat", "CR1000X"),
+            ("./test_files/PWS_002/4-CR1000x_PWS_002_IPconnect_Met.dat", "CR1000X"),
+            # add additional test_files to test here:
+        ],
+    )
+    def parameters(self, request: Any) -> Any:
         return request.param
 
-    @pytest.fixture(scope="class")
-    def input_file(self, parameters):
+    @pytest.fixture(scope="class")  # type: ignore[misc]
+    def input_file(self, parameters: Tuple[str, str]) -> str:
         # just the filename
         return os.path.split(parameters[0])[1]
 
-    @pytest.fixture(scope="class")
-    def input_path(self, parameters):
+    @pytest.fixture(scope="class")  # type: ignore[misc]
+    def input_path(self, parameters: Tuple[str, str]) -> str:
         # just the path
         return os.path.split(parameters[0])[0]
 
-    @pytest.fixture(scope="class")
-    def cdl_type(self, parameters):
+    @pytest.fixture(scope="class")  # type: ignore[misc]
+    def cdl_type(self, parameters: Tuple[str, str]) -> str:
         return parameters[1]
 
-    @pytest.fixture(scope="class")
-    def output_dir(self, input_path):
-        return os.path.join(input_path, 'out')
+    @pytest.fixture(scope="class")  # type: ignore[misc]
+    def output_dir(self, input_path: str) -> str:
+        return os.path.join(input_path, "out")
 
-    @pytest.fixture(scope="class")
-    def expected_dir(self, input_path, input_file):
-        return os.path.join(input_path, 'expected', input_file)
+    @pytest.fixture(scope="class")  # type: ignore[misc]
+    def expected_dir(self, input_path: str, input_file: str) -> str:
+        return os.path.join(input_path, "expected", input_file)
 
-    @pytest.fixture(scope="class")
+    @pytest.fixture(scope="class")  # type: ignore[misc]
     def setup(
         self,
-        input_path,
-        input_file,
-        cdl_type,
-        output_dir,
-        expected_dir
-    ):
-        print(f'running fixture {input_file}')
+        input_path: str,
+        input_file: str,
+        cdl_type: str,
+        output_dir: str,
+        expected_dir: str,
+    ) -> Generator[Tuple[Any, Any], None, None]:
+        print(f"running fixture {input_file}")
         # remove the number from the file name
         original_input_file_name = input_file
-        input_file = re.search(r"\d-(.*)", input_file).groups()[0]
+        match = re.search(r"\d-(.*)", input_file)
+        if match is None:
+            raise ValueError(f"Could not extract filename from {input_file}")
+        input_file = match.groups()[0]
         os.rename(
             os.path.join(input_path, original_input_file_name),
-            os.path.join(input_path, input_file)
+            os.path.join(input_path, input_file),
         )
 
         # If this is the first of the tests
         # then clear any output files and saved data
         # to prep for the test.
-        if original_input_file_name.startswith('1'):
+        if original_input_file_name.startswith("1"):
             print(f"Removing out files and saved data for {input_file}")
             # remove saved file_position data
             prefix = re.split(r"\.|\/", input_file)[-2:][0]
-            fn = f'.{prefix}_file_position.yaml'
+            fn = f".{prefix}_file_position.yaml"
             saved_file_pos_path = os.path.join(
-                input_path,
-                ".extract_loggernet_cache/",
-                fn
+                input_path, ".extract_loggernet_cache/", fn
             )
             if os.path.exists(saved_file_pos_path):
                 os.remove(saved_file_pos_path)
@@ -134,14 +136,14 @@ class TestGroup:
             output_dir=output_dir,
             cdl_type=cdl_type,
             split_interval="HOURLY",
-            file_name_format="PREFIX.YYYYMMDDhhmmss.EXT"
+            file_name_format="PREFIX.YYYYMMDDhhmmss.EXT",
         )
 
         out_filenames = sorted(
-            [f for f in os.listdir(output_dir) if f.endswith('.dat')]
+            [f for f in os.listdir(output_dir) if f.endswith(".dat")]
         )
         expected_filenames = sorted(
-            [f for f in os.listdir(expected_dir) if f.endswith('.dat')]
+            [f for f in os.listdir(expected_dir) if f.endswith(".dat")]
         )
 
         # return value and run test
@@ -150,20 +152,22 @@ class TestGroup:
         # ---------- CLEANUP (restore input_file name) -------
         os.rename(
             os.path.join(input_path, input_file),
-            os.path.join(input_path, original_input_file_name)
+            os.path.join(input_path, original_input_file_name),
         )
 
-    def test_correct_number_of_files_created(self, setup):
+    def test_correct_number_of_files_created(self, setup: Tuple[Any, Any]) -> None:
         out_filenames, expected_filenames = setup
-        expected = len([f for f in expected_filenames if f.endswith('.dat')])
-        observed = len([f for f in out_filenames if f.endswith('.dat')])
+        expected = len([f for f in expected_filenames if f.endswith(".dat")])
+        observed = len([f for f in out_filenames if f.endswith(".dat")])
         assert expected == observed
 
-    def test_files_named_correctly(self, setup):
+    def test_files_named_correctly(self, setup: Tuple[Any, Any]) -> None:
         out_filenames, expected_filenames = setup
         assert out_filenames == expected_filenames
 
-    def test_files_have_correct_content(self, output_dir, expected_dir, setup):
+    def test_files_have_correct_content(
+        self, output_dir: str, expected_dir: str, setup: Tuple[Any, Any]
+    ) -> None:
         out_filenames, expected_filenames = setup
         for name in expected_filenames:
             expected_file = os.path.join(expected_dir, name)
