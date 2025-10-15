@@ -662,7 +662,7 @@ def process_file(
     prefix = rename_prefix if rename_prefix else prefix
     extension = rename_extension if rename_extension else extension
 
-    print(f"running extract loggernet on {input_path}")
+    print(f"running extract loggernet on {input_file_path}")
 
     with open(input_file_path, "r") as file:
 
