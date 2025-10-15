@@ -47,6 +47,9 @@
 #   - Cleaner, more readable patterns
 #   - Easier to maintain
 #
+# NOTE: Matched files are automatically sorted by path before processing
+#       for predictable and consistent processing order.
+#
 INPUT_FILE_PATH:
   pattern: '^(?P<site>\w+)/(?P<logger>\w+)/.*\.dat$'
   search_root: /data

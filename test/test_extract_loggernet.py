@@ -749,3 +749,36 @@ class TestPatternMatching:
         assert "logger2.DAT" in matched_files
         assert "logger3.Dat" in matched_files
         assert "logger4.txt" not in matched_files
+
+    def test_pattern_results_are_sorted(self, tmp_path: Any) -> None:
+        """Test that pattern matching results are sorted by file path."""
+        # Create test directory structure with files in non-alphabetical order
+        test_dir = tmp_path / "data"
+        test_dir.mkdir(parents=True)
+
+        # Create files (os.walk might return them in any order)
+        (test_dir / "zebra.dat").write_text("test")
+        (test_dir / "alpha.dat").write_text("test")
+        (test_dir / "charlie.dat").write_text("test")
+        (test_dir / "bravo.dat").write_text("test")
+
+        # Test pattern matching
+        input_config = {
+            "pattern": r".*\.dat$",
+            "search_root": str(test_dir),
+        }
+
+        results = extract_loggernet.resolve_input_files(input_config)
+
+        # Extract just the file paths
+        file_paths = [path for path, _ in results]
+
+        # Verify results are sorted
+        assert len(file_paths) == 4
+        assert file_paths == sorted(
+            file_paths
+        ), f"Files are not sorted. Got: {[os.path.basename(p) for p in file_paths]}"
+
+        # Verify the specific order
+        basenames = [os.path.basename(p) for p in file_paths]
+        assert basenames == ["alpha.dat", "bravo.dat", "charlie.dat", "zebra.dat"]

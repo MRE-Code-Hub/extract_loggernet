@@ -76,7 +76,8 @@ def resolve_input_files(
     -------
     list of tuples
         Each tuple contains (file_path, captured_groups_dict)
-        where captured_groups_dict contains any named groups from pattern matching
+        where captured_groups_dict contains any named groups from pattern matching.
+        Results are sorted by file path for predictable processing order.
 
     Examples
     --------
@@ -141,7 +142,8 @@ def resolve_input_files(
                     captured_groups = match.groupdict()
                     results.append((filepath, captured_groups))
 
-        return results
+        # Sort results by filepath for predictable processing order
+        return sorted(results, key=lambda x: x[0])
 
     # If we get here, unsupported format
     raise ValueError(
