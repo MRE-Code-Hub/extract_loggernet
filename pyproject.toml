@@ -54,7 +54,7 @@ Issues = "https://github.com/mre-code-hub/extract_loggernet/issues"
 packages = ["extract_loggernet.py"]
 
 [tool.pytest.ini_options]
-testpaths = ["tests"]
+testpaths = ["test"]
 python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
@@ -67,8 +67,7 @@ addopts = [
 [tool.coverage.run]
 source = ["."]
 omit = [
-    "tests/*",
-    "test_files/*",
+    "test/*",
 ]
 
 [tool.coverage.report]
@@ -96,7 +95,7 @@ strict_equality = true
 show_error_codes = true
 
 [[tool.mypy.overrides]]
-module = "tests.*"
+module = "test.*"
 disallow_untyped_defs = false
 disallow_untyped_decorators = false
 warn_return_any = false

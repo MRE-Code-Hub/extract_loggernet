@@ -49,21 +49,33 @@ class TestGroup:
         scope="class",
         params=[
             # (input_file_path, cdl_type)
-            ("./test_files/CR3000/1-CR3000_Table213.dat", "CR3000"),
-            ("./test_files/CR3000/2-CR3000_Table213.dat", "CR3000"),
-            ("./test_files/CR3000/3-CR3000_Table213.dat", "CR3000"),
-            ("./test_files/CR3000/4-CR3000_Table213.dat", "CR3000"),
-            ("./test_files/CR23/1-GndRadData.dat", "CR23"),
-            ("./test_files/CR23/2-GndRadData.dat", "CR23"),
-            ("./test_files/CR23/3-GndRadData.dat", "CR23"),
-            ("./test_files/CR23/4-GndRadData.dat", "CR23"),
-            ("./test_files/CR23/5-GndRadData.dat", "CR23"),
-            ("./test_files/CR23/6-GndRadData.dat", "CR23"),
-            ("./test_files/PWS_002/1-CR1000x_PWS_002_IPconnect_Met.dat", "CR1000X"),
-            ("./test_files/PWS_002/2-CR1000x_PWS_002_IPconnect_Met.dat", "CR1000X"),
-            ("./test_files/PWS_002/3-CR1000x_PWS_002_IPconnect_Met.dat", "CR1000X"),
-            ("./test_files/PWS_002/4-CR1000x_PWS_002_IPconnect_Met.dat", "CR1000X"),
-            # add additional test_files to test here:
+            ("./test/test_files/CR3000/1-CR3000_Table213.dat", "CR3000"),
+            ("./test/test_files/CR3000/2-CR3000_Table213.dat", "CR3000"),
+            ("./test/test_files/CR3000/3-CR3000_Table213.dat", "CR3000"),
+            ("./test/test_files/CR3000/4-CR3000_Table213.dat", "CR3000"),
+            ("./test/test_files/CR23/1-GndRadData.dat", "CR23"),
+            ("./test/test_files/CR23/2-GndRadData.dat", "CR23"),
+            ("./test/test_files/CR23/3-GndRadData.dat", "CR23"),
+            ("./test/test_files/CR23/4-GndRadData.dat", "CR23"),
+            ("./test/test_files/CR23/5-GndRadData.dat", "CR23"),
+            ("./test/test_files/CR23/6-GndRadData.dat", "CR23"),
+            (
+                "./test/test_files/PWS_002/1-CR1000x_PWS_002_IPconnect_Met.dat",
+                "CR1000X",
+            ),
+            (
+                "./test/test_files/PWS_002/2-CR1000x_PWS_002_IPconnect_Met.dat",
+                "CR1000X",
+            ),
+            (
+                "./test/test_files/PWS_002/3-CR1000x_PWS_002_IPconnect_Met.dat",
+                "CR1000X",
+            ),
+            (
+                "./test/test_files/PWS_002/4-CR1000x_PWS_002_IPconnect_Met.dat",
+                "CR1000X",
+            ),
+            # add additional test files to test here:
         ],
     )
     def parameters(self, request: Any) -> Any:
@@ -205,7 +217,7 @@ class TestDirectoryStructure:
         test_dir = tempfile.mkdtemp()
         try:
             # Use the first CR3000 test file
-            input_file_path = "./test_files/CR3000/1-CR3000_Table213.dat"
+            input_file_path = "./test/test_files/CR3000/1-CR3000_Table213.dat"
             input_path, original_filename = os.path.split(input_file_path)
 
             # Copy the test file to temp directory to avoid affecting other tests
@@ -272,7 +284,7 @@ class TestDirectoryStructure:
         test_dir = tempfile.mkdtemp()
         try:
             # Use the first CR3000 test file
-            input_file_path = "./test_files/CR3000/1-CR3000_Table213.dat"
+            input_file_path = "./test/test_files/CR3000/1-CR3000_Table213.dat"
 
             # Copy the test file to temp directory
             temp_input = os.path.join(test_dir, "test_input.dat")
@@ -330,7 +342,7 @@ class TestDirectoryStructure:
 
         test_dir = tempfile.mkdtemp()
         try:
-            input_file_path = "./test_files/CR3000/1-CR3000_Table213.dat"
+            input_file_path = "./test/test_files/CR3000/1-CR3000_Table213.dat"
             temp_input = os.path.join(test_dir, "test_input.dat")
             shutil.copy(input_file_path, temp_input)
 
@@ -482,7 +494,7 @@ class TestPatternMatching:
             os.makedirs(logger_dir)
 
             # Copy a test file
-            src_file = "./test_files/CR3000/1-CR3000_Table213.dat"
+            src_file = "./test/test_files/CR3000/1-CR3000_Table213.dat"
             dst_file = os.path.join(logger_dir, "test.dat")
             shutil.copy(src_file, dst_file)
 
@@ -559,7 +571,7 @@ class TestPatternMatching:
             os.makedirs(logger_dir)
 
             # Copy a test file
-            src_file = "./test_files/CR3000/1-CR3000_Table213.dat"
+            src_file = "./test/test_files/CR3000/1-CR3000_Table213.dat"
             dst_file = os.path.join(logger_dir, "measurements.dat")
             shutil.copy(src_file, dst_file)
 

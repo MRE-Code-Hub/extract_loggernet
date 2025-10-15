@@ -169,9 +169,9 @@ Template tokens (YYYY, MM, DD, etc.) can be repeated in both the path and filena
 
 ## Tests
 
-Each subdirectory within `test_files` contains test files representing a single growing file, as well as a directory for expected output and actual output.
+Each subdirectory within `test/test_files` contains test files representing a single growing file, as well as a directory for expected output and actual output.
 
-The test class in `/tests/test_extract_loggernet.py` will simulate a single growing file, and verify that the output is accurate and that the file position is saving correctly. It does this by reading each of the test files consecutively and comparing the output with the expected for each file. The test files are preceded by a number, which is removed for each test to create the effect of a single growing loggernet file. For example, it will process
+The test class in `/test/test_extract_loggernet.py` will simulate a single growing file, and verify that the output is accurate and that the file position is saving correctly. It does this by reading each of the test files consecutively and comparing the output with the expected for each file. The test files are preceded by a number, which is removed for each test to create the effect of a single growing loggernet file. For example, it will process
 
 ```text
 1-CR1000x_PWS_002_IPconnect_Met.dat,
@@ -196,4 +196,4 @@ uv run pytest
 pytest
 ```
 
-You could also write your own test files, following the same directory structure, and include them in the test_files directory. To add them to the pytest class, simply add another 'block' to the fixture of the `parameters` function in the test class.
+You could also write your own test files, following the same directory structure, and include them in the `test/test_files` directory. To add them to the pytest class, simply add another 'block' to the fixture of the `parameters` function in the test class.
