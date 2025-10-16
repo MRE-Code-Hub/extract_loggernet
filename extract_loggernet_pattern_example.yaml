@@ -132,6 +132,12 @@ OUTPUT_FILE_PATH: /output/{site}/{logger}/{site}_{logger}_data.{YYYY}{MM}{DD}{hh
 CDL_TYPE: CR1000X
 
 SPLIT_INTERVAL: HOURLY
+
+# WRITE_INCOMPLETE_PERIODS
+#     Set to false to only write complete hours/days.
+#     See extract_loggernet_conf_example.yaml for detailed documentation.
+#
+WRITE_INCOMPLETE_PERIODS: true
 # CACHE_PATH
 #     Optional prefix path for the cache directory location.
 #     See extract_loggernet_conf_example.yaml for detailed documentation.

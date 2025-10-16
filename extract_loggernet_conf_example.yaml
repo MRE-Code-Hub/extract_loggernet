@@ -70,6 +70,25 @@ CDL_TYPE: CR23
 #
 SPLIT_INTERVAL: HOURLY
 
+# WRITE_INCOMPLETE_PERIODS
+#     Control whether to write incomplete hours/days at the end of the file.
+#
+#     When true (default): Writes all data including the most recent incomplete period.
+#         - Useful for real-time monitoring where you want the latest data immediately
+#         - The incomplete period will be rewritten on the next run with additional data
+#
+#     When false: Only writes complete periods, skipping the most recent hour/day.
+#         - Useful for data pipelines where you only want finalized data
+#         - Avoids repeatedly rewriting the same file as new data arrives
+#         - The incomplete data will be written once the period completes
+#
+#     Example with HOURLY split:
+#         If file contains data from 10:00-10:45 (incomplete hour):
+#         - true: Writes the 10:00 hour file with 45 minutes of data
+#         - false: Waits until 11:00+ data arrives, then writes complete 10:00 hour
+#
+WRITE_INCOMPLETE_PERIODS: true
+
 # FILE_NAME_FORMAT
 #     A string specifying the format for naming the output files.
 #     Supports multiple types of placeholders:

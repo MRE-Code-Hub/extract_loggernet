@@ -597,6 +597,7 @@ def process_file(
     rename_extension: Optional[str] = None,
     captured_groups: Optional[Dict[str, str]] = None,
     output_file_path: Optional[str] = None,
+    write_incomplete_periods: bool = True,
 ) -> None:
     """
     Read the input file from the given input_file_path and extract
@@ -641,6 +642,11 @@ def process_file(
 
         If not provided, will construct from output_dir + file_name_format
         for backward compatibility.
+    write_incomplete_periods : bool, optional
+        If True (default), writes incomplete hours/days at end of file.
+        If False, only writes complete periods, holding back the most recent
+        incomplete data until the period is complete. Default is True for
+        backward compatibility.
     """
     # Backward compatibility: construct output_file_path from old parameters
     if output_file_path is None:
@@ -684,7 +690,7 @@ def process_file(
                     # then save any leftover data anyway
                     # and append to the file with the rest
                     # of the data later.
-                    if previous_timestamp:
+                    if previous_timestamp and write_incomplete_periods:
                         write_new_hourly_file(
                             output_file_path,
                             prefix,
@@ -798,6 +804,7 @@ def main() -> None:
     # Optional config file parameters
     cdl_type = conf.get("CDL_TYPE", "CR1000X")
     split_interval = conf.get("SPLIT_INTERVAL", "HOURLY")
+    write_incomplete_periods = conf.get("WRITE_INCOMPLETE_PERIODS", True)
 
     # Legacy parameters (deprecated)
     rename_prefix = conf.get("RENAME_PREFIX")
@@ -827,6 +834,7 @@ def main() -> None:
                     rename_prefix=rename_prefix,
                     rename_extension=rename_extension,
                     captured_groups=captured_groups,
+                    write_incomplete_periods=write_incomplete_periods,
                 )
             else:
                 # Backward compatibility: old OUTPUT_DIR + FILE_NAME_FORMAT
@@ -841,6 +849,7 @@ def main() -> None:
                     rename_prefix=rename_prefix,
                     rename_extension=rename_extension,
                     captured_groups=captured_groups,
+                    write_incomplete_periods=write_incomplete_periods,
                 )
         except Exception as e:
             print(

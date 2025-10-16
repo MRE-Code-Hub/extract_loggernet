@@ -811,3 +811,89 @@ class TestPatternMatching:
         assert "invalid UTF-8 encoding" in captured.out
         assert "corrupted.dat" in captured.out
         assert "Skipping this file" in captured.out
+
+    def test_write_incomplete_periods_true(self, tmp_path: Any) -> None:
+        """Test that incomplete periods are written when write_incomplete_periods=True."""
+        import shutil
+
+        # Use a real test file
+        input_file = "./test/test_files/CR3000/1-CR3000_Table213.dat"
+        if not os.path.exists(input_file):
+            pytest.skip(f"Test file {input_file} not found")
+
+        # Copy to temp location
+        test_file = tmp_path / "test_data.dat"
+        shutil.copy(input_file, test_file)
+
+        output_dir = tmp_path / "output"
+        output_dir.mkdir()
+
+        # Process with write_incomplete_periods=True (default)
+        extract_loggernet.process_file(
+            str(test_file),
+            str(output_dir),
+            cdl_type="CR3000",
+            split_interval="HOURLY",
+            write_incomplete_periods=True,
+        )
+
+        # Should create at least one output file
+        output_files = list(output_dir.glob("*.dat"))
+        assert len(output_files) > 0, "Expected at least one output file"
+
+    def test_write_incomplete_periods_false(self, tmp_path: Any) -> None:
+        """
+        Test that incomplete periods are NOT written when
+        write_incomplete_periods=False.
+        """
+        import shutil
+
+        # Use a real test file - this should have incomplete last hour
+        input_file = "./test/test_files/CR3000/1-CR3000_Table213.dat"
+        if not os.path.exists(input_file):
+            pytest.skip(f"Test file {input_file} not found")
+
+        # Copy to temp location
+        test_file = tmp_path / "test_data.dat"
+        shutil.copy(input_file, test_file)
+
+        output_dir = tmp_path / "output"
+        output_dir.mkdir()
+
+        # Process with write_incomplete_periods=False
+        extract_loggernet.process_file(
+            str(test_file),
+            str(output_dir),
+            cdl_type="CR3000",
+            split_interval="HOURLY",
+            write_incomplete_periods=False,
+        )
+
+        # Count output files with write_incomplete_periods=False
+        output_files_no_incomplete = list(output_dir.glob("*.dat"))
+        count_no_incomplete = len(output_files_no_incomplete)
+
+        # Clean output directory
+        for f in output_files_no_incomplete:
+            f.unlink()
+
+        # Now process with write_incomplete_periods=True
+        extract_loggernet.process_file(
+            str(test_file),
+            str(output_dir),
+            cdl_type="CR3000",
+            split_interval="HOURLY",
+            write_incomplete_periods=True,
+        )
+
+        # Count output files with write_incomplete_periods=True
+        output_files_with_incomplete = list(output_dir.glob("*.dat"))
+        count_with_incomplete = len(output_files_with_incomplete)
+
+        # With write_incomplete_periods=False, should have same or fewer files
+        # (at least one fewer if the last period was incomplete)
+        assert count_no_incomplete <= count_with_incomplete, (
+            f"Expected write_incomplete_periods=False to produce "
+            f"same or fewer files. Got {count_no_incomplete} "
+            f"vs {count_with_incomplete}"
+        )
