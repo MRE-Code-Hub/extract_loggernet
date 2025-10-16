@@ -767,6 +767,12 @@ def main() -> None:
     parser.add_argument(
         "config_file", help="""Directory to a yaml configuration file"""
     )
+    parser.add_argument(
+        "--list-matches",
+        action="store_true",
+        help="""List all files that match the INPUT_FILE_PATH pattern and exit
+        without processing. Useful for testing patterns before extraction.""",
+    )
     args = parser.parse_args()
     conf_path = args.config_file
 
@@ -816,6 +822,19 @@ def main() -> None:
 
     # Resolve input files (supports patterns and captured groups)
     input_files = resolve_input_files(input_file_config)
+
+    # If --list-matches flag is set, just print matches and exit
+    if args.list_matches:
+        print(f"Found {len(input_files)} matching file(s):\n")
+        for infile, captured_groups in input_files:
+            if captured_groups:
+                groups_str = ", ".join(f"{k}={v}" for k, v in captured_groups.items())
+                print(f"  {infile}")
+                print(f"    Captured groups: {groups_str}")
+            else:
+                print(f"  {infile}")
+        print(f"\nTotal: {len(input_files)} file(s)")
+        return
 
     # Process each matched file
     for infile, captured_groups in input_files:

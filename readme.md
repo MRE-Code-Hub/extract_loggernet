@@ -64,6 +64,35 @@ uv run extract_loggernet.py /path/to/config.yaml
 ./extract_loggernet.py /path/to/config.yaml
 ```
 
+#### Testing Pattern Matching
+
+Use the `--list-matches` flag to preview which files will be matched by your `INPUT_FILE_PATH` pattern without actually processing them:
+
+```bash
+uv run extract_loggernet.py /path/to/config.yaml --list-matches
+```
+
+This is especially useful when:
+
+- Testing regex patterns before running extraction
+- Verifying that your pattern matches the expected files
+- Debugging pattern matching issues
+
+Example output:
+
+```text
+Found 3 matching file(s):
+
+  /data/site1/logger1/data.dat
+    Captured groups: site=site1, logger=logger1
+  /data/site2/logger2/data.dat
+    Captured groups: site=site2, logger=logger2
+  /data/site3/logger3/data.dat
+    Captured groups: site=site3, logger=logger3
+
+Total: 3 file(s)
+```
+
 ### Python Module
 
 or

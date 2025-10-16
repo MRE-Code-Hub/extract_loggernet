@@ -897,3 +897,106 @@ class TestPatternMatching:
             f"same or fewer files. Got {count_no_incomplete} "
             f"vs {count_with_incomplete}"
         )
+
+    def test_list_matches_with_pattern(self, tmp_path: Any) -> None:
+        """Test that --list-matches option lists matching files correctly."""
+        import subprocess
+        import yaml
+
+        # Create a directory structure with test files
+        base_dir = tmp_path / "test_data"
+        base_dir.mkdir()
+
+        # Create test files matching a pattern
+        site1_dir = base_dir / "site1" / "logger1"
+        site1_dir.mkdir(parents=True)
+        (site1_dir / "data.dat").write_text("test")
+
+        site2_dir = base_dir / "site2" / "logger2"
+        site2_dir.mkdir(parents=True)
+        (site2_dir / "data.dat").write_text("test")
+
+        # Create a non-matching file
+        (base_dir / "readme.txt").write_text("test")
+
+        # Create config file
+        config = {
+            "INPUT_FILE_PATH": {
+                "search_root": str(base_dir),
+                "pattern": r"^(?P<site>\w+)/(?P<logger>\w+)/.*\.dat$",
+            },
+            "OUTPUT_FILE_PATH": str(
+                tmp_path / "output" / "{site}" / "{logger}" / "data.dat"
+            ),
+            "CDL_TYPE": "CR1000X",
+        }
+
+        config_file = tmp_path / "test_config.yaml"
+        with open(config_file, "w") as f:
+            yaml.dump(config, f)
+
+        # Run with --list-matches
+        result = subprocess.run(
+            [
+                "uv",
+                "run",
+                "python",
+                "extract_loggernet.py",
+                str(config_file),
+                "--list-matches",
+            ],
+            capture_output=True,
+            text=True,
+        )
+
+        # Verify output
+        assert result.returncode == 0
+        assert "Found 2 matching file(s)" in result.stdout
+        assert "site1" in result.stdout
+        assert "logger1" in result.stdout
+        assert "site2" in result.stdout
+        assert "logger2" in result.stdout
+        assert "Captured groups" in result.stdout
+        assert "Total: 2 file(s)" in result.stdout
+        # Non-matching file should not appear
+        assert "readme.txt" not in result.stdout
+
+    def test_list_matches_with_simple_path(self, tmp_path: Any) -> None:
+        """Test that --list-matches works with simple file path (no pattern)."""
+        import subprocess
+        import yaml
+
+        # Create a simple test file
+        test_file = tmp_path / "test_data.dat"
+        test_file.write_text("test")
+
+        # Create config file with simple path
+        config = {
+            "INPUT_FILE_PATH": str(test_file),
+            "OUTPUT_DIR": str(tmp_path / "output"),
+            "CDL_TYPE": "CR1000X",
+        }
+
+        config_file = tmp_path / "test_config.yaml"
+        with open(config_file, "w") as f:
+            yaml.dump(config, f)
+
+        # Run with --list-matches
+        result = subprocess.run(
+            [
+                "uv",
+                "run",
+                "python",
+                "extract_loggernet.py",
+                str(config_file),
+                "--list-matches",
+            ],
+            capture_output=True,
+            text=True,
+        )
+
+        # Verify output
+        assert result.returncode == 0
+        assert "Found 1 matching file(s)" in result.stdout
+        assert str(test_file) in result.stdout
+        assert "Total: 1 file(s)" in result.stdout

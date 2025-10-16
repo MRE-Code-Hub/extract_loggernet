@@ -1,0 +1,8 @@
+CACHE_PATH: /home/ec2-user/cache
+INPUT_FILE_PATH:
+  search_root: /share/upload/incoming/pacwave/floatr
+  pattern: '(?i)^(?P<location>pws|pwn)/(?P<number>\d+)/.*(?P<name>adcp|met|ocean)\w*\.dat$'
+OUTPUT_FILE_PATH: /share/data/raw/{location|lower}/{name|lower}/{number}/{location|upper}_{number}_{name}.{YYYY}{MM}{DD}.{hh}{mm}{ss}.dat
+WRITE_INCOMPLETE_PERIODS: false
+CDL_TYPE: CR1000X
+SPLIT_INTERVAL: HOURLY
